@@ -1,0 +1,15 @@
+{
+  "username": "AyAdmin",
+  "password": "AyPass",
+  "web_port": 6854,
+  "domain": "org.shammay.ir",
+  "main_port": 8868,
+  "sub_path": "sub",
+  "extra_ports": [
+    1234,
+    8688,
+    9999
+  ],
+  "cert_path": "/root/cert/org.shammay.ir/fullchain.pem",
+  "key_path": "/root/cert/org.shammay.ir/privkey.pem"
+}
