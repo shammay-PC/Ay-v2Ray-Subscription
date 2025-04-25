@@ -42,12 +42,17 @@ install_project() {
   systemctl enable $SERVICE1 $SERVICE2
   systemctl start $SERVICE1 $SERVICE2
 
+  echo "Creating ay-sub shortcut command..."
+  ln -sf $PROJECT_DIR/setup.sh /usr/local/bin/ay-sub
+  chmod +x /usr/local/bin/ay-sub
+
   echo "Installation complete!"
   echo "--------------------------------------"
-  echo "Access your panel at: https://$DOMAIN:6854"
+  echo "Web Panel: https://$DOMAIN:6854"
   echo "Username: AyAdmin"
   echo "Password: AyPass"
-  echo "To run setup menu again: bash setup.sh"
+  echo "--------------------------------------"
+  echo "To run menu: Ay-Sub"
   exit 0
 }
 
