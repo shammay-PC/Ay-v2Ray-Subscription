@@ -52,7 +52,7 @@ install_project() {
   echo "Username: AyAdmin"
   echo "Password: AyPass"
   echo "--------------------------------------"
-  echo "To run menu: Ay-Sub"
+  echo "To run menu: ay-sub"
   exit 0
 }
 
@@ -67,11 +67,13 @@ update_panel() {
   cd $PROJECT_DIR && git pull
   systemctl restart $SERVICE1 $SERVICE2
   echo "Panel updated successfully."
+  read -p "Press Enter to return to menu..."
 }
 
 restart_service() {
   systemctl restart $SERVICE1 $SERVICE2
   echo "Services restarted."
+  read -p "Press Enter to return to menu..."
 }
 
 configuration() {
@@ -87,6 +89,7 @@ uninstall_project() {
   systemctl daemon-reexec
   rm -rf $PROJECT_DIR
   echo "Uninstalled successfully."
+  read -p "Press Enter to return to menu..."
 }
 
 while true; do
@@ -101,4 +104,5 @@ while true; do
     0) exit;;
     *) echo "Invalid option"; sleep 1;;
   esac
+  read -p "Press Enter to return to menu..."
 done
