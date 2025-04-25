@@ -1,102 +1,89 @@
 #!/bin/bash
 
-clear
-echo -e "\e[1;36m"
-echo "    █████╗ ██╗   ██╗██████╗ ██╗███████╗ ███████╗"
-echo "   ██╔══██╗██║   ██║██╔══██╗██║██╔════╝ ██╔════╝"
-echo "   ███████║██║   ██║██████╔╝██║███████╗ █████╗  "
-echo "   ██╔══██║██║   ██║██╔═══╝ ██║╚════██╗ ██╔══╝  "
-echo "   ██║  ██║╚██████╔╝██║     ██║███████╗ ███████╗"
-echo "   ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝ ╚══════╝"
-echo -e "\e[0m"
-echo "Developed by shammay"
-echo "All Rights Reserved by Ay Technic"
-echo "Website: shammay.ir"
-echo "-------------------------------------"
-echo "                    Ay-VPN"
-echo "-------------------------------------"
-echo "1. Install"
-echo "2. Update Panel"
-echo "3. Restart Service"
-echo "4. Configuration"
-echo "5. Uninstall"
-echo "0. Exit"
-echo "-------------------------------------"
-read -p "Select an option: " option
+PROJECT_DIR="/root/ay-custom-sub"
+SERVICE1="ay-custom-sub.service"
+SERVICE2="ay-custom-web.service"
 
-case $option in
-  1)
-    read -p "Enter your domain (e.g. example.com): " domain
-
-    echo "Cloning the project..."
-    git clone https://github.com/YourGitHub/Ay-v2Ray-Subscription.git /root/ay-custom-sub
-
-    echo "Setting up config..."
-    cat <<EOF > /root/ay-custom-sub/config.json
-{
-  "username": "AyAdmin",
-  "password": "AyPass",
-  "web_port": 6854,
-  "main_port": 8868,
-  "extra_ports": [6854, 8688, 4586],
-  "domain": "$domain",
-  "sub_path": "sub",
-  "cert_path": "",
-  "key_path": ""
+print_menu() {
+  clear
+  echo "======================================"
+  echo "            Ay VPN"
+  echo "      Developed by shammay"
+  echo " All Rights Reserved by Ay Technic"
+  echo "       https://shammay.ir"
+  echo "======================================"
+  echo "1. Install"
+  echo "2. Update Panel"
+  echo "3. Restart Service"
+  echo "4. Configuration"
+  echo "5. Uninstall"
+  echo "0. Exit"
+  echo "======================================"
 }
-EOF
 
-    echo "Installing requirements..."
-    pip3 install flask requests
+install_project() {
+  echo "Enter your domain (e.g., example.com):"
+  read DOMAIN
 
-    echo "Installing systemd services..."
-    cp /root/ay-custom-sub/ay-custom-sub.service /etc/systemd/system/
-    cp /root/ay-custom-sub/ay-custom-web.service /etc/systemd/system/
-    systemctl daemon-reexec
-    systemctl daemon-reload
-    systemctl enable ay-custom-sub.service
-    systemctl enable ay-custom-web.service
-    systemctl start ay-custom-sub.service
-    systemctl start ay-custom-web.service
+  echo "Cloning project..."
+  rm -rf $PROJECT_DIR
+  git clone https://github.com/shammay-PC/Ay-v2Ray-Subscription.git $PROJECT_DIR
 
-    echo -e "\n✅ Installation Complete"
-    echo "🔗 Visit: https://$domain:6854"
-    echo "🧑 Username: AyAdmin"
-    echo "🔐 Password: AyPass"
-    echo "To launch the menu again, run: bash setup.sh"
-    ;;
-  2)
-    echo "Updating project..."
-    cd /root/ay-custom-sub && git pull
-    systemctl restart ay-custom-sub.service
-    systemctl restart ay-custom-web.service
-    echo "✅ Update complete."
-    ;;
-  3)
-    systemctl restart ay-custom-sub.service
-    systemctl restart ay-custom-web.service
-    echo "✅ Services restarted."
-    ;;
-  4)
-    nano /root/ay-custom-sub/config.json
-    ;;
-  5)
-    echo "Uninstalling..."
-    systemctl stop ay-custom-sub.service
-    systemctl stop ay-custom-web.service
-    systemctl disable ay-custom-sub.service
-    systemctl disable ay-custom-web.service
-    rm /etc/systemd/system/ay-custom-sub.service
-    rm /etc/systemd/system/ay-custom-web.service
-    rm -rf /root/ay-custom-sub
-    systemctl daemon-reload
-    echo "✅ Uninstalled successfully."
-    ;;
-  0)
-    echo "Goodbye!"
-    exit 0
-    ;;
-  *)
-    echo "Invalid option."
-    ;;
-esac
+  echo "Installing requirements..."
+  pip install flask requests
+
+  echo "Setting up services..."
+  cp $PROJECT_DIR/systemd/$SERVICE1 /etc/systemd/system/
+  cp $PROJECT_DIR/systemd/$SERVICE2 /etc/systemd/system/
+  systemctl daemon-reexec
+  systemctl enable $SERVICE1 $SERVICE2
+  systemctl start $SERVICE1 $SERVICE2
+
+  echo "Installation complete!"
+  echo "--------------------------------------"
+  echo "Access your panel at: https://$DOMAIN:6854"
+  echo "Username: AyAdmin"
+  echo "Password: AyPass"
+  echo "To run setup menu again: bash setup.sh"
+}
+
+update_panel() {
+  echo "Updating panel..."
+  cd $PROJECT_DIR && git pull
+  systemctl restart $SERVICE1 $SERVICE2
+  echo "Panel updated successfully."
+}
+
+restart_service() {
+  systemctl restart $SERVICE1 $SERVICE2
+  echo "Services restarted."
+}
+
+configuration() {
+  nano $PROJECT_DIR/config.json
+}
+
+uninstall_project() {
+  echo "Uninstalling..."
+  systemctl stop $SERVICE1 $SERVICE2
+  systemctl disable $SERVICE1 $SERVICE2
+  rm /etc/systemd/system/$SERVICE1
+  rm /etc/systemd/system/$SERVICE2
+  systemctl daemon-reexec
+  rm -rf $PROJECT_DIR
+  echo "Uninstalled successfully."
+}
+
+while true; do
+  print_menu
+  read -p "Select an option: " choice
+  case $choice in
+    1) install_project;;
+    2) update_panel;;
+    3) restart_service;;
+    4) configuration;;
+    5) uninstall_project;;
+    0) exit;;
+    *) echo "Invalid option"; sleep 1;;
+  esac
+done
