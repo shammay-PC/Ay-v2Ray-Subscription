@@ -67,13 +67,11 @@ update_panel() {
   cd $PROJECT_DIR && git pull
   systemctl restart $SERVICE1 $SERVICE2
   echo "Panel updated successfully."
-  read -p "Press Enter to return to menu..."
 }
 
 restart_service() {
   systemctl restart $SERVICE1 $SERVICE2
   echo "Services restarted."
-  read -p "Press Enter to return to menu..."
 }
 
 configuration() {
@@ -89,7 +87,6 @@ uninstall_project() {
   systemctl daemon-reexec
   rm -rf $PROJECT_DIR
   echo "Uninstalled successfully."
-  read -p "Press Enter to return to menu..."
 }
 
 while true; do
