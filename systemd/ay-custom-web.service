@@ -1,0 +1,13 @@
+[Unit]
+Description=Ay-Custom-Sub Web Panel
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /root/ay-custom-sub/ay_custom_web.py
+Restart=always
+User=root
+WorkingDirectory=/root/ay-custom-sub
+
+[Install]
+WantedBy=multi-user.target

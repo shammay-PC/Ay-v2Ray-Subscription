@@ -1,0 +1,15 @@
+[Unit]
+Description=Ay-Custom-Sub Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /root/ay-custom-sub/ay_custom_sub.py
+Restart=always
+User=root
+WorkingDirectory=/root/ay-custom-sub
+StandardOutput=append:/var/log/ay-custom-sub.log
+StandardError=append:/var/log/ay-custom-sub-error.log
+
+[Install]
+WantedBy=multi-user.target

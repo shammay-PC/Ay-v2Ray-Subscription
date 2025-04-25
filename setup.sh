@@ -7,7 +7,7 @@ SERVICE2="ay-custom-web.service"
 print_menu() {
   clear
   echo "======================================"
-  echo "            Ay VPN"
+  echo "           Ay Technic"
   echo "      Developed by shammay"
   echo " All Rights Reserved by Ay Technic"
   echo "       https://shammay.ir"
@@ -22,8 +22,11 @@ print_menu() {
 }
 
 install_project() {
-  echo "Enter your domain (e.g., example.com):"
-  read DOMAIN
+  DOMAIN=$1
+
+  if [ -z "$DOMAIN" ]; then
+    read -p "Enter your domain (e.g., example.com): " DOMAIN
+  fi
 
   echo "Cloning project..."
   rm -rf $PROJECT_DIR
@@ -45,8 +48,15 @@ install_project() {
   echo "Username: AyAdmin"
   echo "Password: AyPass"
   echo "To run setup menu again: bash setup.sh"
+  exit 0
 }
 
+# اگر با پارامتر install اجرا شد، مستقیم نصب کن
+if [[ "$1" == "install" ]]; then
+  install_project "$2"
+fi
+
+# در غیر این صورت منوی تعاملی اجرا میشه
 update_panel() {
   echo "Updating panel..."
   cd $PROJECT_DIR && git pull
