@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>داشبورد Ay-Custom-Sub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { padding-top: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .header {
+            background: linear-gradient(135deg, #6e48aa 0%, #9d50bb 100%);
+            color: white;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .config-box { 
+            background: #f1f1f1; 
+            padding: 0.5rem 1rem; 
+            border-radius: 8px; 
+            margin-bottom: 0.5rem; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .config-box code { 
+            direction: ltr; 
+            white-space: nowrap; 
+            overflow-x: auto; 
+            max-width: 80%; 
+        }
+        .form-label { 
+            font-weight: bold; 
+        }
+        .btn-sm { 
+            padding: 0.25rem 0.5rem; 
+            font-size: 0.875rem; 
+        }
+        .settings-panel {
+            display: none;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .toggle-settings {
+            margin-bottom: 1rem;
+        }
+        .sub-config-box {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .footer {
+            background: linear-gradient(135deg, #6e48aa 0%, #9d50bb 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            text-align: center;
+        }
+        .social-icons a {
+            color: white;
+            font-size: 1.5rem;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .social-icons a:hover {
+            transform: translateY(-3px);
+            color: #f1f1f1;
+        }
+        .developer-info {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        .batch-add {
+            margin-top: 1rem;
+        }
+        textarea {
+            direction: ltr;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <h1><i class="fas fa-server"></i> داشبورد مدیریت Ay-Custom-Sub</h1>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> خروج</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <button class="btn btn-primary toggle-settings" onclick="toggleSettings()">
+            <i class="fas fa-cog"></i> نمایش/پنهان کردن تنظیمات
+        </button>
+
+        <div class="settings-panel" id="settingsPanel">
+            <h4><i class="fas fa-sliders-h"></i> تنظیمات سیستم</h4>
+            <form method="POST" class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label">نام کاربری</label>
+                    <input type="text" name="username" class="form-control" value="{{ settings.username }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">رمز عبور</label>
+                    <input type="password" name="password" class="form-control" value="{{ settings.password }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">پورت پنل وب</label>
+                    <input type="number" name="web_port" class="form-control" value="{{ settings.web_port }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">پورت اصلی X-UI</label>
+                    <input type="number" name="main_port" class="form-control" value="{{ settings.main_port }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">پورت‌های اضافی (جداشده با ,)</label>
+                    <input type="text" name="extra_ports" class="form-control" value="{{ settings.extra_ports | join(',') }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">دامنه</label>
+                    <input type="text" name="domain" class="form-control" value="{{ settings.domain }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">آدرس سابسکریپشن</label>
+                    <input type="text" name="sub_path" class="form-control" value="{{ settings.sub_path }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">مسیر گواهی SSL</label>
+                    <input type="text" name="cert_path" class="form-control" value="{{ settings.cert_path }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">مسیر کلید SSL</label>
+                    <input type="text" name="key_path" class="form-control" value="{{ settings.key_path }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> ذخیره تنظیمات</button>
+                   <button class="btn btn-warning" type="button" onclick="restartServices()">ریستارت سرویس</button>
+
+                </div>
+            </form>
+        </div>
+
+        <hr>
+
+        <h4><i class="fas fa-list"></i> کانفیگ‌های دستی</h4>
+		<form method="POST" action="/add-config" onsubmit="event.preventDefault(); addConfig();">
+			<div class="input-group mb-3">
+				<input type="text" id="new_config" name="new_config" class="form-control" placeholder="کانفیگ جدید">
+				<button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> افزودن</button>
+			</div>
+
+			<div class="batch-add">
+				<h5>افزودن دسته‌جمعی</h5>
+				<textarea id="batch_configs" name="batch_configs" class="form-control mb-2" rows="3" placeholder="هر کانفیگ در یک خط جدید وارد شود"></textarea>
+				<button class="btn btn-info" type="button" onclick="addBatchConfigs()"><i class="fas fa-layer-group"></i> افزودن همه</button>
+			</div>
+		</form>
+
+        {% for config in custom_configs %}
+        <div class="config-box">
+            <code>{{ config }}</code>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary me-2" onclick="copyToClipboard('{{ config }}')"><i class="fas fa-copy"></i> کپی</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteConfig({{ loop.index0 }})"><i class="fas fa-trash"></i> حذف</button>
+            </div>
+        </div>
+        {% endfor %}
+
+        <hr>
+
+        <h4><i class="fas fa-search"></i> بررسی سابسکریپشن</h4>
+        <form method="POST" action="/check-sub" onsubmit="event.preventDefault(); checkSub();">
+            <div class="input-group mb-3">
+                <input type="text" id="sub_url" name="sub_url" class="form-control" placeholder="آدرس لینک سابسکریپشن">
+                <button class="btn btn-info" type="submit"><i class="fas fa-check"></i> بررسی</button>
+            </div>
+        </form>
+        <div id="check_result"></div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="social-icons">
+                <a href="https://t.me/yourchannel" target="_blank"><i class="fab fa-telegram"></i></a>
+                <a href="https://facebook.com/yourpage" target="_blank"><i class="fab fa-facebook"></i></a>
+                <a href="https://github.com/yourusername" target="_blank"><i class="fab fa-github"></i></a>
+            </div>
+            <div class="developer-info">
+                <p>توسعه داده شده توسط تیم Ay-Custom-Sub | نسخه 1.0.0</p>
+                <p>© 2023 تمامی حقوق محفوظ است</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleSettings() {
+            const panel = document.getElementById("settingsPanel");
+            panel.style.display = panel.style.display === "none" ? "block" : "none";
+        }
+
+        // Hide settings panel by default
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("settingsPanel").style.display = "none";
+        });
+
+function restartServices() {
+    Swal.fire({
+        title: 'آیا مطمئن هستید؟',
+        text: "سرویس‌ ریستارت خواهد شد!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'بله، ریستارت کن!',
+        cancelButtonText: 'لغو'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/restart-services', {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    Swal.fire(
+                        'انجام شد!',
+                        'سرویس با موفقیت ریستارت شد.',
+                        'success'
+                    ).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire(
+                        'خطا!',
+                        'مشکلی در ریستارت سرویس رخ داد.',
+                        'error'
+                    );
+                }
+            }).catch(error => {
+                Swal.fire(
+                        'انجام شد!',
+                        'سرویس با موفقیت ریستارت شد.',
+                        'success'
+                ).then(() => {
+                        location.reload();
+                    });
+            });
+        }
+    })
+}
+
+        function addConfig() {
+    const singleConfig = document.getElementById('new_config').value.trim();
+    if (singleConfig) {
+        fetch('/add-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'new_config=' + encodeURIComponent(singleConfig)
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function addBatchConfigs() {
+    const configs = document.getElementById('batch_configs').value.trim().split('\n');
+    if (configs.length > 0) {
+        const formData = new URLSearchParams();
+        configs.forEach(cfg => {
+            if (cfg.trim() !== '') {
+                formData.append('new_config', cfg.trim());
+            }
+        });
+
+        fetch('/add-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+}
+
+        function deleteConfig(index) {
+            if (confirm("آیا از حذف این کانفیگ اطمینان دارید؟")) {
+                fetch('/delete-config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'index=' + index
+                }).then(() => location.reload());
+            }
+        }
+
+        function checkSub() {
+            const url = document.getElementById("sub_url").value;
+            if (!url.trim()) return;
+            
+            document.getElementById("check_result").innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> در حال بررسی...</div>';
+            
+            fetch('/check-sub', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'sub_url=' + encodeURIComponent(url)
+            })
+            .then(res => res.text())
+            .then(data => {
+                const resultDiv = document.getElementById("check_result");
+                resultDiv.innerHTML = "";
+                
+                // Split configs by line breaks
+                const configs = data.split('\n').filter(c => c.trim());
+                
+                if (configs.length === 0) {
+                    resultDiv.innerHTML = '<div class="alert alert-warning">هیچ کانفیگی یافت نشد</div>';
+                    return;
+                }
+                
+                // Colors for config boxes
+                const colors = [
+                    'background: linear-gradient(135deg, #4CAF50 0%, #81C784 100%);',
+                    'background: linear-gradient(135deg, #F44336 0%, #E57373 100%);',
+                    'background: linear-gradient(135deg, #2196F3 0%, #64B5F6 100%);',
+                    'background: linear-gradient(135deg, #FF9800 0%, #FFB74D 100%);',
+                    'background: linear-gradient(135deg, #9C27B0 0%, #BA68C8 100%);',
+                    'background: linear-gradient(135deg, #607D8B 0%, #90A4AE 100%);',
+                    'background: linear-gradient(135deg, #795548 0%, #A1887F 100%);',
+                    'background: linear-gradient(135deg, #3F51B5 0%, #7986CB 100%);'
+                ];
+                
+                configs.forEach((config, index) => {
+                    const colorIndex = index % colors.length;
+                    const box = document.createElement('div');
+                    box.className = 'sub-config-box';
+                    box.style = colors[colorIndex];
+                    
+                    box.innerHTML = `
+                        <code style="color: white; direction: ltr; max-width: 80%; overflow-x: auto;">${config}</code>
+                        <button class="btn btn-sm btn-light" onclick="copyToClipboard('${config.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-copy"></i> کپی
+                        </button>
+                    `;
+                    
+                    resultDiv.appendChild(box);
+                });
+            })
+            .catch(error => {
+                document.getElementById("check_result").innerHTML = `
+                    <div class="alert alert-danger">
+                        خطا در بررسی سابسکریپشن: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert("کانفیگ با موفقیت کپی شد!");
+            }).catch(err => {
+                alert("خطا در کپی کردن: " + err);
+            });
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+</html>

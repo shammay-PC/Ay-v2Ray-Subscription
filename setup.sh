@@ -12,12 +12,12 @@ print_menu() {
   echo " All Rights Reserved by Ay Technic"
   echo "       https://shammay.ir"
   echo "======================================"
-  echo "1. Install"
-  echo "2. Update Panel"
-  echo "3. Restart Service"
-  echo "4. Configuration"
-  echo "5. Uninstall"
-  echo "0. Exit"
+  echo "1. 📊 Install"
+  echo "2. 🔄 Update Panel"
+  echo "3. 🔁 Restart Service"
+  echo "4. 🛠 Configuration"
+  echo "5. 🗃 Uninstall"
+  echo "0. ❌ Exit"
   echo "======================================"
 }
 

@@ -77,7 +77,7 @@ def dashboard():
         config['cert_path'] = request.form.get('cert_path', config.get('cert_path'))
         config['key_path'] = request.form.get('key_path', config.get('key_path'))
         save_config(config)
-        flash('تنظیمات با موفقیت ذخیره شد', 'success')
+        flash('تنظیمات با موفقیت ذخیره شد. سرویس را ریستارت کنید.', 'success')
         return redirect(url_for('dashboard'))
 
     xui_base = f"https://{config.get('domain')}:{config.get('main_port')}"
@@ -88,6 +88,19 @@ def dashboard():
         settings=config,
         xui_base=xui_base
     )
+
+import subprocess
+
+@app.route('/restart-services', methods=['POST'])
+def restart_services():
+    if not session.get('logged_in'):
+        return 'Unauthorized', 401
+    try:
+        subprocess.run(['systemctl', 'restart', 'ay-custom-sub'], check=True)
+        subprocess.run(['systemctl', 'restart', 'ay-custom-web'], check=True)
+        return 'Services restarted successfully.', 200
+    except subprocess.CalledProcessError:
+        return 'Failed to restart services.', 500
 
 @app.route('/add-config', methods=['POST'])
 def add_config():
@@ -144,7 +157,7 @@ def check_sub():
         # پاکسازی خطوط و آماده‌سازی برای نمایش منظم
         lines = decoded.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         configs = [line.strip() for line in lines if line.strip()]
-        result = '\n' + '\n'.join(configs)  # اضافه کردن خط خالی در ابتدای خروجی
+        result = '\n'.join(configs)
 
         return f"<pre style='direction: ltr; white-space: pre-wrap;'>{result}</pre>"
 
