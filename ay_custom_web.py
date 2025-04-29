@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import json
 import os
 import requests
+import base64
+import subprocess
 
 app = Flask(__name__)
 app.secret_key = 'AyCustomSecretKey'
@@ -89,8 +91,6 @@ def dashboard():
         xui_base=xui_base
     )
 
-import subprocess
-
 @app.route('/restart-services', methods=['POST'])
 def restart_services():
     if not session.get('logged_in'):
@@ -130,8 +130,6 @@ def delete_config():
                 f.writelines(lines)
     return '', 204
 
-import base64
-
 @app.route('/check-sub', methods=['POST'])
 def check_sub():
     if not session.get('logged_in'):
@@ -144,25 +142,29 @@ def check_sub():
     try:
         res = requests.get(sub_url, timeout=7)
         if res.status_code != 200:
-            return f'<pre>خطا در دریافت لینک: {res.status_code}</pre>'
+            return f'خطا در دریافت لینک: {res.status_code}'
 
         content = res.text.strip()
+
+        # حذف تگ‌های <pre> از محتوای دریافتی
+        content = content.replace('<pre style=\'direction: ltr; white-space: pre-wrap;\'>', '')
+        content = content.replace('<pre>', '').replace('</pre>', '')
 
         # دیکد کردن اگر base64 باشد
         try:
             decoded = base64.b64decode(content).decode('utf-8')
         except Exception:
-            decoded = content  # اگر دیکد نشد، همون متن رو استفاده کن
+            decoded = content
 
         # پاکسازی خطوط و آماده‌سازی برای نمایش منظم
         lines = decoded.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         configs = [line.strip() for line in lines if line.strip()]
         result = '\n'.join(configs)
 
-        return f"<pre style='direction: ltr; white-space: pre-wrap;'>{result}</pre>"
+        return result
 
     except Exception as e:
-        return f"<pre>خطا: {e}</pre>"
+        return f"خطا: {e}"
 
 if __name__ == '__main__':
     config = load_config()
@@ -175,5 +177,3 @@ if __name__ == '__main__':
     else:
         print('SSL certificate or key file not found. Running in HTTP mode...')
         app.run(host='0.0.0.0', port=port)
-
-
