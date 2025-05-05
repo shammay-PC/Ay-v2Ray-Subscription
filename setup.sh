@@ -33,7 +33,10 @@ install_project() {
   git clone https://github.com/shammay-PC/Ay-v2Ray-Subscription.git $PROJECT_DIR
 
   echo "Installing requirements..."
+  apt install python3 python3-pip -y
   pip install flask requests
+  pip3 install flask requests
+
 
   echo "Setting up services..."
   cp $PROJECT_DIR/systemd/$SERVICE1 /etc/systemd/system/

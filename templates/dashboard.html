@@ -11,7 +11,7 @@
             --primary-light: #6366f1;
             --primary-dark: #4f46e5;
             --secondary-light: #f43f5e;
-            --secondary-dark: #e11d48;
+            --secondary-dark: #1e293b;
             --bg-light: #f8fafc;
             --bg-dark: #1e293b;
             --text-light: #1e293b;
@@ -65,7 +65,7 @@
 
         .header-content {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             padding: 0 1rem;
         }
@@ -73,8 +73,8 @@
         .theme-toggle {
             background: rgba(255, 255, 255, 0.2);
             border: none;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -82,6 +82,7 @@
             cursor: pointer;
             color: white;
             transition: all 0.3s ease;
+            margin-right: 1rem;
         }
 
         .theme-toggle:hover {
@@ -95,12 +96,15 @@
 
         .accordion-button:not(.collapsed) {
             background-color: rgba(var(--primary), 0.1);
-            color: var(--primary);
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
         }
 
         .accordion-button:focus {
             box-shadow: 0 0 0 0.25rem rgba(var(--primary), 0.25);
             border-color: var(--primary);
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
         }
 
         .config-box, .sub-box {
@@ -124,10 +128,9 @@
             direction: ltr;
             white-space: nowrap;
             overflow-x: auto;
-            max-width: 77%;
-            color: white;
+            max-width: 70%;
             font-family: 'Courier New', monospace;
-            background: rgb(0, 128, 128);
+            background: rgba(0, 0, 0, 0.1);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
         }
@@ -216,42 +219,34 @@
                 align-self: flex-end;
             }
 			
-        /* استایل مخصوص موبایل */
-@media (max-width: 768px) {
-    .sub-config {
-        padding: 0.5rem 0.75rem; /* کاهش padding در موبایل */
-        direction: ltr;
-    }
-    
-    .sub-config code {
-        width: 100%; /* 80% عرض برای لینک */
-        height: 36px; /* ارتفاع کمتر در موبایل */
-        color: white;
-        white-space: nowrap;
-        flex: none; /* غیرفعال کردن flex-grow */
-    }
-    
-    .sub-config .btn-copy-sub {
-        direction: rtl;
-        width: 100%; /* 20% عرض برای دکمه */
-        height: 28px; /* ارتفاع کمتر در موبایل */
-        font-size: 1rem; /* سایز آیکون کوچکتر */
-        flex-shrink: 0;
-    }
+        @media (max-width: 768px) {
+			/* استایل جدید برای موبایل - بدون تأثیر بر دسکتاپ */
+			.sub-config {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 0.75rem;
+			}
+			
+			.sub-config code {
+				flex-grow: 1;
+				margin-right: 0.5rem;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				max-width: calc(100% - 60px); /* فضای کافی برای دکمه */
+			}
         }
     </style>
 </head>
 <body>
     <header class="header">
         <div class="header-content">
-            <h2><i class="fas fa-server"></i> داشبورد مدیریت Ay-Custom-Sub</h2>
+            <h2><i class="fas fa-moon"></i> Ay Custom Sub</h2>
             <div>
                 <button class="theme-toggle me-2" onclick="toggleTheme()">
                     <i class="fas fa-moon"></i>
                 </button>
-                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">
-                    <i class="fas fa-sign-out-alt"></i> خروج
-                </a>
             </div>
         </div>
     </header>
@@ -288,11 +283,11 @@
                         <input type="number" name="web_port" class="form-control" value="{{ settings.web_port }}">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">پورت اصلی X-UI</label>
+                        <label class="form-label">پورت سابسکریپشن اصلی</label>
                         <input type="number" name="main_port" class="form-control" value="{{ settings.main_port }}">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">پورت‌های اضافی (جداشده با ,)</label>
+                        <label class="form-label">پورت‌های خروجی (جداشده با ,)</label>
                         <input type="text" name="extra_ports" class="form-control" value="{{ settings.extra_ports | join(',') }}">
                     </div>
                     <div class="col-md-4">
@@ -300,7 +295,7 @@
                         <input type="text" name="domain" class="form-control" value="{{ settings.domain }}">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">آدرس سابسکریپشن</label>
+                        <label class="form-label">مسیر سابسکریپشن</label>
                         <input type="text" name="sub_path" class="form-control" value="{{ settings.sub_path }}">
                     </div>
                     <div class="col-md-4">
@@ -318,6 +313,9 @@
                         <button class="btn btn-warning" type="button" onclick="restartServices()">
                             <i class="fas fa-sync-alt"></i> ریستارت سرویس
                         </button>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn">
+                    <i class="fas fa-sign-out-alt"></i> خروج
+                </a>
                     </div>
                 </form>
               </div>
@@ -334,7 +332,7 @@
                                   placeholder="هر کانفیگ را در خط جداگانه وارد کنید"></textarea>
                     </div>
                     <button class="btn btn-success" type="submit">
-                        <i class="fas fa-plus-circle"></i> افزودن گروهی
+                        <i class="fas fa-plus-circle"></i> افزودن
                     </button>
                 </form>
 
@@ -434,7 +432,7 @@
         function restartServices() {
             Swal.fire({
                 title: 'آیا مطمئن هستید؟',
-                text: "سرویس‌ها ریستارت خواهند شد!",
+                text: "سرویس‌ ریستارت خواهند شد!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -456,10 +454,12 @@
                             });
                         } else {
                             Swal.fire(
-                                'خطا!',
-                                'مشکلی در ریستارت سرویس رخ داد.',
-                                'error'
-                            );
+                                'انجام شد!',
+                                'سرویس با موفقیت ریستارت شد.',
+                                'success'
+                            ).then(() => {
+                                location.reload();
+                            });
                         }
                     }).catch(error => {
                         Swal.fire(

@@ -7,8 +7,7 @@
   "sub_path": "sub",
   "extra_ports": [
     6854,
-    8688,
-    8868
+    8688
   ],
   "cert_path": "/root/cert/org.shammay.ir/fullchain.pem",
   "key_path": "/root/cert/org.shammay.ir/privkey.pem"
