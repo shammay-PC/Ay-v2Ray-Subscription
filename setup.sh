@@ -51,7 +51,7 @@ install_project() {
 
   echo "Installation complete!"
   echo "--------------------------------------"
-  echo "Web Panel: https://$DOMAIN:6854"
+  echo "Web Panel: https://$DOMAIN:4321"
   echo "Username: AyAdmin"
   echo "Password: AyPass"
   echo "--------------------------------------"
