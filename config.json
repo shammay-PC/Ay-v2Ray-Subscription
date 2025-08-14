@@ -11,7 +11,5 @@
   ],
   "cert_path": "/root/cert/org.shammay.ir/fullchain.pem",
   "key_path": "/root/cert/org.shammay.ir/privkey.pem",
-  "side_collection_urls": [
-    "https://dev1.irdevs.sbs"
-  ]
+  "side_collection_urls": []
 }
