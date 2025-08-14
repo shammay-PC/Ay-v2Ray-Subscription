@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import json
 import os
 import requests
@@ -21,9 +21,12 @@ def load_config():
         "domain": "org.shammay.ir",
         "sub_path": "sub",
         "cert_path": "",
-        "key_path": ""
+        "key_path": "",
+        "side_collection_urls": []
     }
     if not os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(default_config, f, indent=2)
         return default_config
     try:
         with open(CONFIG_PATH, 'r') as f:
@@ -32,7 +35,7 @@ def load_config():
             if key not in config:
                 config[key] = val
         return config
-    except:
+    except (json.JSONDecodeError, IOError):
         return default_config
 
 def save_config(config):
@@ -90,6 +93,22 @@ def dashboard():
         settings=config,
         xui_base=xui_base
     )
+    
+@app.route('/save-side-links', methods=['POST'])
+def save_side_links():
+    if not session.get('logged_in'):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+    try:
+        links_list = request.form.getlist('side_collection_urls')
+        cleaned_links = [link.strip() for link in links_list if link.strip()]
+        
+        config = load_config()
+        config['side_collection_urls'] = cleaned_links
+        save_config(config)
+        
+        return jsonify({'status': 'success', 'message': 'لینک‌های مجموعه جانبی با موفقیت ذخیره شدند.'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/restart-services', methods=['POST'])
 def restart_services():
@@ -130,6 +149,18 @@ def delete_config():
                 f.writelines(lines)
     return '', 204
 
+@app.route('/delete-all-configs', methods=['POST'])
+def delete_all_configs():
+    if not session.get('logged_in'):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+    try:
+        with open(CONFIGS_FILE, 'w') as f:
+            f.truncate(0) # فایل را خالی می‌کند
+        return jsonify({'status': 'success', 'message': 'تمام کانفیگ‌های دستی با موفقیت حذف شدند.'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @app.route('/check-sub', methods=['POST'])
 def check_sub():
     if not session.get('logged_in'):
@@ -145,18 +176,14 @@ def check_sub():
             return f'خطا در دریافت لینک: {res.status_code}'
 
         content = res.text.strip()
-
-        # حذف تگ‌های <pre> از محتوای دریافتی
         content = content.replace('<pre style=\'direction: ltr; white-space: pre-wrap;\'>', '')
         content = content.replace('<pre>', '').replace('</pre>', '')
 
-        # دیکد کردن اگر base64 باشد
         try:
             decoded = base64.b64decode(content).decode('utf-8')
         except Exception:
             decoded = content
 
-        # پاکسازی خطوط و آماده‌سازی برای نمایش منظم
         lines = decoded.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         configs = [line.strip() for line in lines if line.strip()]
         result = '\n'.join(configs)
