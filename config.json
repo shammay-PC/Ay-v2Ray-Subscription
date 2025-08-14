@@ -10,5 +10,6 @@
     8688
   ],
   "cert_path": "/root/cert/org.shammay.ir/fullchain.pem",
-  "key_path": "/root/cert/org.shammay.ir/privkey.pem"
+  "key_path": "/root/cert/org.shammay.ir/privkey.pem",
+  "side_collection_urls": []
 }
