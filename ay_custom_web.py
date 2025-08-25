@@ -12,6 +12,7 @@ CONFIG_PATH = 'config.json'
 CONFIGS_FILE = 'Ay_Custom_Configs'
 
 def load_config():
+    # مقادیر پیش‌فرض برای پارامترهای جدید اضافه شد
     default_config = {
         "username": "AyAdmin",
         "password": "AyPass",
@@ -22,7 +23,10 @@ def load_config():
         "sub_path": "sub",
         "cert_path": "",
         "key_path": "",
-        "side_collection_urls": []
+        "side_collection_urls": [],
+        "expired_message": "⛔ اشتراک شما منقضی شده، لطفا تمدید کنید ⛔",
+        "no_sub_message": "⛔ شما اشتراکی در این سرویس ندارید ⛔",
+        "dummy_config_template": "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1?type=ws#{MESSAGE}"
     }
     if not os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH, 'w') as f:
@@ -31,6 +35,7 @@ def load_config():
     try:
         with open(CONFIG_PATH, 'r') as f:
             config = json.load(f)
+        # اطمینان از وجود تمام کلیدها در فایل کانفیگ
         for key, val in default_config.items():
             if key not in config:
                 config[key] = val
@@ -81,8 +86,11 @@ def dashboard():
         config['sub_path'] = request.form.get('sub_path', config.get('sub_path'))
         config['cert_path'] = request.form.get('cert_path', config.get('cert_path'))
         config['key_path'] = request.form.get('key_path', config.get('key_path'))
+        # ذخیره دو فیلد جدید از فرم
+        config['expired_message'] = request.form.get('expired_message', config.get('expired_message'))
+        config['no_sub_message'] = request.form.get('no_sub_message', config.get('no_sub_message'))
         save_config(config)
-        flash('تنظیمات با موفقیت ذخیره شد. سرویس را ریستارت کنید.', 'success')
+        flash('تنظیمات با موفقیت ذخیره شد. برای اعمال برخی تغییرات، سرویس را ریستارت کنید.', 'success')
         return redirect(url_for('dashboard'))
 
     xui_base = f"https://{config.get('domain')}:{config.get('main_port')}"
@@ -155,7 +163,7 @@ def delete_all_configs():
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
     try:
         with open(CONFIGS_FILE, 'w') as f:
-            f.truncate(0) # فایل را خالی می‌کند
+            f.truncate(0) 
         return jsonify({'status': 'success', 'message': 'تمام کانفیگ‌های دستی با موفقیت حذف شدند.'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500

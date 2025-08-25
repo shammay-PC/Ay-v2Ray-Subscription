@@ -1,6 +1,7 @@
 from flask import Flask, Response, request
 import requests
 from requests.exceptions import RequestException
+from urllib.parse import unquote, quote
 import os
 import threading
 import json
@@ -32,13 +33,51 @@ def merged_sub(sub_path, username):
         try:
             xui_url = f"https://{config['domain']}:{config['main_port']}/{sub_path}/{username}"
             real_resp = requests.get(xui_url, timeout=10, verify=False)
-            if real_resp.status_code == 200:
-                main_configs = real_resp.text.strip().splitlines()
-            else:
-                print(f"Error fetching main subscription, status code: {real_resp.status_code}")
-        except RequestException as e:
-            print(f"Could not connect to main subscription URL: {e}")
+            
+            status_code = real_resp.status_code
 
+            if status_code == 200:
+                response_text = real_resp.text.strip()
+                is_expired = False
+                
+                if not response_text:
+                    is_expired = True
+                    print(f"Subscription for user '{username}' is expired (empty body).")
+                else:
+                    first_config_line = response_text.splitlines()[0]
+                    if '#' in first_config_line:
+                        encoded_name = first_config_line.split('#', 1)[1]
+                        decoded_name = unquote(encoded_name).strip()
+                        if decoded_name.startswith('⛔'):
+                            is_expired = True
+                            print(f"Subscription for user '{username}' is expired (⛔ emoji detected).")
+
+                if is_expired:
+                    # خواندن پیام کاربر منقضی از فایل کانفیگ و ارسال کانفیگ ساختگی
+                    message = config.get("expired_message", "⛔ اشتراک شما منقضی شده، لطفا تمدید کنید ⛔")
+                    template = config.get("dummy_config_template", "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1?type=ws#{MESSAGE}")
+                    encoded_message = quote(message)
+                    dummy_config = template.replace("{MESSAGE}", encoded_message)
+                    return Response(dummy_config, status=200, mimetype='text/plain')
+                
+                main_configs = response_text.splitlines()
+            else:
+                # کاربر وجود ندارد
+                print(f"User '{username}' not found on main server. Status: {status_code}")
+                # خواندن پیام کاربر ناموجود از فایل کانفیگ و ارسال کانفیگ ساختگی
+                message = config.get("no_sub_message", "⛔ شما اشتراکی در این سرویس ندارید ⛔")
+                template = config.get("dummy_config_template", "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1?type=ws#{MESSAGE}")
+                encoded_message = quote(message)
+                dummy_config = template.replace("{MESSAGE}", encoded_message)
+                return Response(dummy_config, status=200, mimetype='text/plain')
+
+        except RequestException as e:
+            # تنها در صورت خطای اتصال، پیغام خطا نمایش داده شده و کانفیگ‌ها دست نخورده باقی می‌مانند
+            print(f"Could not connect to main subscription URL for user '{username}': {e}")
+            return Response("خطا در اتصال به سرور اصلی. کانفیگ‌های قبلی شما حفظ شده است.", status=502)
+
+
+        # این بخش تنها در صورتی اجرا می‌شود که کاربر اشتراک فعال داشته باشد
         extra_configs = read_custom_configs()
 
         side_collection_configs = []
