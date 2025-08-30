@@ -1,0 +1,6 @@
+[Unit]
+Description=Periodically restarts the Ay-custom-sub service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl restart ay-custom-sub.service
