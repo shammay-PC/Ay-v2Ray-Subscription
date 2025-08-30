@@ -100,7 +100,7 @@ install_project() {
   chmod +x /usr/local/bin/ay-sub
 
   # Save panel info for menu display
-  echo "PANEL_URL=https://s$DOMAIN:4321" > $PANEL_INFO_FILE
+  echo "PANEL_URL=https://$DOMAIN:4321" > $PANEL_INFO_FILE
   echo "PANEL_USER=AyAdmin" >> $PANEL_INFO_FILE
   echo "PANEL_PASS=AyPass" >> $PANEL_INFO_FILE
 
