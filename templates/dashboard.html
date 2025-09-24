@@ -8,279 +8,48 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-light: #6366f1;
-            --primary-light-rgb: 99, 102, 241;
-            --primary-dark: #4f46e5;
-            --primary-dark-rgb: 79, 70, 229;
-            --secondary-light: #f43f5e;
-            --secondary-dark: #1e293b;
-            --bg-light: #f8fafc;
-            --bg-dark: #1e293b;
-            --text-light: #1e293b;
-            --text-dark: #f8fafc;
-            --card-light: #ffffff;
-            --card-dark: #334155;
-            --border-light: #e2e8f0;
-            --border-dark: #475569;
+            --primary-light: #6366f1; --primary-light-rgb: 99, 102, 241;
+            --primary-dark: #4f46e5; --primary-dark-rgb: 79, 70, 229;
+            --secondary-light: #f43f5e; --secondary-dark: #1e293b;
+            --bg-light: #f8fafc; --bg-dark: #1e293b;
+            --text-light: #1e293b; --text-dark: #f8fafc;
+            --card-light: #ffffff; --card-dark: #334155;
+            --border-light: #e2e8f0; --border-dark: #475569;
         }
-
-        [data-theme="light"] {
-            --primary: var(--primary-light);
-            --primary-rgb: var(--primary-light-rgb);
-            --secondary: var(--secondary-light);
-            --bg-color: var(--bg-light);
-            --text-color: var(--text-light);
-            --card-bg: var(--card-light);
-            --border-color: var(--border-light);
-            --hover-bg: #f1f5f9;
-        }
-
-        [data-theme="dark"] {
-            --primary: var(--primary-dark);
-            --primary-rgb: var(--primary-dark-rgb);
-            --secondary: var(--secondary-dark);
-            --bg-color: var(--bg-dark);
-            --text-color: var(--text-dark);
-            --card-bg: var(--card-dark);
-            --border-color: var(--border-dark);
-            --hover-bg: #334155;
-        }
-
-        body {
-            font-family: 'Vazirmatn', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s ease;
-            padding-top: 0;
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 1rem 0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 0 1rem;
-        }
-
-        .theme-toggle {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: white;
-            transition: all 0.3s ease;
-            margin-right: 1rem;
-        }
-
-        .theme-toggle:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .main-container {
-            flex: 1;
-            padding: 1.5rem;
-        }
-
-        .accordion-button:not(.collapsed) {
-            background-color: rgba(var(--primary), 0.1);
-            background: linear-gradient(135deg, var(--secondary), var(--primary));
-            color: white;
-        }
-
-        .accordion-button:focus {
-            box-shadow: 0 0 0 0.25rem rgba(var(--primary), 0.25);
-            border-color: var(--primary);
-            background: linear-gradient(135deg, var(--secondary), var(--primary));
-            color: white;
-        }
-
-        .config-box, .sub-box {
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-        
-        .config-box .btn-group {
-            flex-shrink: 0;
-        }
-
-        .config-box:hover, .sub-box:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .config-box code, .sub-box code {
-            direction: ltr;
-            white-space: nowrap;
-            overflow-x: auto;
-            flex-grow: 1;
-            margin-left: 1rem;
-            font-family: 'Courier New', monospace;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-        }
-        
-        /* --- شروع تغییر ۳: یکسان‌سازی ظاهر کانفیگ‌ها --- */
-        [data-theme="light"] .config-box code,
-        [data-theme="light"] .sub-box code {
-            background: #e9ecef;
-            color: #212529;
-            text-shadow: none;
-        }
-        [data-theme="dark"] .config-box code,
-        [data-theme="dark"] .sub-box code {
-            background: #495057;
-            color: #f8f9fa;
-            text-shadow: none;
-        }
-        
-        .sub-box code {
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        /* --- پایان تغییر ۳ --- */
-        
-        .footer {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 1.5rem;
-            text-align: center;
-            margin-top: auto;
-        }
-
-        .footer a {
-            color: white;
-            margin: 0 0.5rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .footer a:hover {
-            color: #e2e8f0;
-            text-decoration: underline;
-        }
-
-        .btn-copy-all {
-            width: 100%;
-            padding: 0.75rem;
-            font-size: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .btn-copy-all:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .sub-config .btn-copy-sub {
-            width: 48px;
-            height: 48px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            padding: 0;
-            border-radius: 8px;
-        }
-
-        .sub-config {
-            background: linear-gradient(135deg, #4CAF50 0%, #81C784 100%);
-        }
-
-        .sub-config:nth-child(2n) {
-            background: linear-gradient(135deg, #2196F3 0%, #64B5F6 100%);
-        }
-
-        .sub-config:nth-child(3n) {
-            background: linear-gradient(135deg, #F44336 0%, #E57373 100%);
-        }
-
-        .sub-config:nth-child(4n) {
-            background: linear-gradient(135deg, #FF9800 0%, #FFB74D 100%);
-        }
-
-        @media (max-width: 768px) {
-            .header-content h2 {
-                font-size: 1.25rem;
-            }
-            .config-box, .sub-box {
-                flex-wrap: nowrap;
-            }
-        }
-        
-        .rtl-placeholder::placeholder {
-            text-align: right;
-            direction: rtl;
-        }
-
-        [data-theme="light"] .side-collection-card {
-            background-color: #eef2ff;
-        }
-        [data-theme="dark"] .side-collection-card {
-            background-color: #2d3748;
-        }
-        
-        [data-theme="dark"] .side-collection-card .card-title {
-            color: var(--text-dark);
-        }
-        
-        .btn-outline-custom-green {
-            color: #198754;
-            border-color: #198754;
-        }
-        .btn-outline-custom-green:hover {
-            color: #fff;
-            background-color: #198754;
-            border-color: #198754;
-        }
-        [data-theme="dark"] .btn-outline-custom-green {
-            color: #28a745;
-            border-color: #28a745;
-        }
-        [data-theme="dark"] .btn-outline-custom-green:hover {
-            color: #fff;
-            background-color: #28a745;
-            border-color: #28a745;
-        }
-
+        [data-theme="light"] { --primary: var(--primary-light); --primary-rgb: var(--primary-light-rgb); --secondary: var(--secondary-light); --bg-color: var(--bg-light); --text-color: var(--text-light); --card-bg: var(--card-light); --border-color: var(--border-light); }
+        [data-theme="dark"] { --primary: var(--primary-dark); --primary-rgb: var(--primary-dark-rgb); --secondary: var(--secondary-dark); --bg-color: var(--bg-dark); --text-color: var(--text-dark); --card-bg: var(--card-dark); --border-color: var(--border-dark); }
+        body { font-family: 'Vazirmatn', sans-serif; background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; display: flex; flex-direction: column; transition: background-color 0.3s ease, color 0.3s ease; }
+        .header { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 1rem 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); position: sticky; top: 0; z-index: 1000; }
+        .header-content { display: flex; justify-content: center; align-items: center; padding: 0 1rem; max-width: 1200px; margin: 0 auto; position: relative; }
+        .header-content h2 { margin-bottom: 0; }
+        .theme-toggle { background: rgba(255, 255, 255, 0.2); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; transition: all 0.3s ease; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);}
+        .theme-toggle:hover { background: rgba(255, 255, 255, 0.3); }
+        .main-container { flex: 1; padding: 1.5rem; }
+        .accordion-button:not(.collapsed) { background: linear-gradient(135deg, var(--secondary), var(--primary)); color: white; }
+        .accordion-button:focus { box-shadow: 0 0 0 0.25rem rgba(var(--primary), 0.25); border-color: var(--primary); background: linear-gradient(135deg, var(--secondary), var(--primary)); color: white; }
+        .config-box, .sub-box { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; background-color: var(--card-bg); border: 1px solid var(--border-color); transition: all 0.3s ease; overflow: hidden; }
+        .config-box:hover, .sub-box:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        .config-box .config-content, .sub-box .config-content { direction: ltr; white-space: nowrap; overflow-x: auto; flex-grow: 1; margin-left: 1rem; font-family: 'Courier New', monospace; padding: 0.25rem 0.5rem; border-radius: 4px; display: flex; align-items: center; }
+        [data-theme="light"] .config-box .config-content, [data-theme="light"] .sub-box .config-content { background: #e9ecef; color: #212529; }
+        [data-theme="dark"] .config-box .config-content, [data-theme="dark"] .sub-box .config-content { background: #495057; color: #f8f9fa; }
+        .config-name { font-family: 'Vazirmatn', sans-serif; font-weight: 500; font-size: 0.95rem; }
+        .protocol-badge { font-size: 0.7rem; font-weight: bold; padding: .2em .6em .3em; border-radius: .25rem; margin-right: 8px; color: #fff; }
+        .badge-vless { background-color: #0d6efd; } .badge-vmess { background-color: #198754; } .badge-ss { background-color: #6f42c1; } .badge-trojan { background-color: #dc3545; } .badge-other { background-color: #6c757d; }
+        .btn-copy-all { width: 100%; padding: 0.75rem; font-size: 1rem; border-radius: 8px; margin-bottom: 1rem; transition: all 0.3s ease; }
+        .sub-config { background: linear-gradient(135deg, #4CAF50 0%, #81C784 100%); }
+        .sub-config:nth-child(2n) { background: linear-gradient(135deg, #2196F3 0%, #64B5F6 100%); }
+        .sub-config:nth-child(3n) { background: linear-gradient(135deg, #F44336 0%, #E57373 100%); }
+        .sub-config:nth-child(4n) { background: linear-gradient(135deg, #FF9800 0%, #FFB74D 100%); }
+        .footer { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 1.5rem; text-align: center; margin-top: auto; }
+        .footer a { color: white; margin: 0 0.5rem; text-decoration: none; transition: all 0.3s ease; }
+        .footer a:hover { color: #e2e8f0; text-decoration: underline; }
     </style>
 </head>
 <body>
     <header class="header">
         <div class="header-content">
             <h2><i class="fas fa-rocket me-2"></i> Ay Custom Sub</h2>
-            <div>
-                <button class="theme-toggle me-2">
-                    <i class="fas fa-moon"></i>
-                </button>
-            </div>
+            <button class="theme-toggle"><i class="fas fa-moon"></i></button>
         </div>
     </header>
 
@@ -289,8 +58,7 @@
           {% if messages %}
             {% for category, message in messages %}
               <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                  {{ message }}
-                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  {{ message }} <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
               </div>
             {% endfor %}
           {% endif %}
@@ -306,62 +74,24 @@
             <div id="settingsCollapse" class="accordion-collapse collapse" data-bs-parent="#settingsAccordion">
               <div class="accordion-body">
                 <form method="POST" class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">نام کاربری</label>
-                        <input type="text" name="username" class="form-control" value="{{ settings.username }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">رمز عبور</label>
-                        <input type="password" name="password" class="form-control" value="{{ settings.password }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">پورت پنل وب</label>
-                        <input type="number" name="web_port" class="form-control" value="{{ settings.web_port }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">پورت سابسکریپشن اصلی</label>
-                        <input type="number" name="main_port" class="form-control" value="{{ settings.main_port }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">پورت‌های خروجی (جداشده با ,)</label>
-                        <input type="text" name="extra_ports" class="form-control" value="{{ settings.extra_ports | join(',') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">دامنه</label>
-                        <input type="text" name="domain" class="form-control" value="{{ settings.domain }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">مسیر سابسکریپشن</label>
-                        <input type="text" name="sub_path" class="form-control" value="{{ settings.sub_path }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">مسیر گواهی SSL</label>
-                        <input type="text" name="cert_path" class="form-control" value="{{ settings.cert_path }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">مسیر کلید SSL</label>
-                        <input type="text" name="key_path" class="form-control" value="{{ settings.key_path }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">پیام کاربر منقضی شده</label>
-                        <textarea name="expired_message" class="form-control" rows="2">{{ settings.expired_message }}</textarea>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">پیام کاربر ناموجود</label>
-                        <textarea name="no_sub_message" class="form-control" rows="2">{{ settings.no_sub_message }}</textarea>
-                    </div>
+                    <div class="col-md-4"><label class="form-label">نام کاربری</label><input type="text" name="username" class="form-control" value="{{ settings.username }}"></div>
+                    <div class="col-md-4"><label class="form-label">رمز عبور</label><input type="password" name="password" class="form-control" value="{{ settings.password }}"></div>
+                    <div class="col-md-4"><label class="form-label">پورت وب</label><input type="number" name="web_port" class="form-control" value="{{ settings.web_port }}"></div>
+                    <div class="col-md-4"><label class="form-label">پورت اصلی</label><input type="number" name="main_port" class="form-control" value="{{ settings.main_port }}"></div>
+                    <div class="col-md-4"><label class="form-label">پورت‌های جانبی (,)</label><input type="text" name="extra_ports" class="form-control" value="{{ settings.extra_ports | join(',') }}"></div>
+                    <div class="col-md-4"><label class="form-label">دامنه</label><input type="text" name="domain" class="form-control" value="{{ settings.domain }}"></div>
+                    <div class="col-md-4"><label class="form-label">مسیر ساب</label><input type="text" name="sub_path" class="form-control" value="{{ settings.sub_path }}"></div>
+                    <div class="col-md-4"><label class="form-label">مسیر گواهی</label><input type="text" name="cert_path" class="form-control" value="{{ settings.cert_path }}"></div>
+                    <div class="col-md-4"><label class="form-label">مسیر کلید</label><input type="text" name="key_path" class="form-control" value="{{ settings.key_path }}"></div>
+                    <div class="col-md-6"><label class="form-label">پیام انقضا</label><textarea name="expired_message" class="form-control" rows="2">{{ settings.expired_message }}</textarea></div>
+                    <div class="col-md-6"><label class="form-label">پیام ناموجود</label><textarea name="no_sub_message" class="form-control" rows="2">{{ settings.no_sub_message }}</textarea></div>
                     <div class="col-12 d-flex flex-wrap align-items-center">
-                        <button type="submit" class="btn btn-primary me-2 mb-2">
-                            <i class="fas fa-save"></i> ذخیره تنظیمات
-                        </button>
-                        <button class="btn btn-warning me-2 mb-2" type="button" onclick="restartServices()">
-                            <i class="fas fa-sync-alt"></i> ریستارت سرویس
-                        </button>
-                        <a href="{{ url_for('logout') }}" class="btn btn-danger mb-2">
-                            <i class="fas fa-sign-out-alt"></i> خروج
-                        </a>
+                        <button type="submit" class="btn btn-primary me-2 mb-2"><i class="fas fa-save"></i> ذخیره</button>
+                        <button class="btn btn-warning me-2 mb-2" type="button" onclick="restartServices()"><i class="fas fa-sync-alt"></i> ریستارت</button>
+                        <button class="btn btn-info me-2 mb-2" type="button" onclick="syncExpiryDates()"><i class="fas fa-calendar-check"></i> همسان سازی تاریخ</button>
+                        <a href="{{ url_for('logout') }}" class="btn btn-danger mb-2"><i class="fas fa-sign-out-alt"></i> خروج</a>
                     </div>
-                    </form>
+                </form>
               </div>
             </div>
           </div>
@@ -369,36 +99,21 @@
 
         <div class="card mb-4 border-0 shadow-sm">
             <div class="card-body">
-                <h4 class="card-title"><i class="fas fa-list"></i> کانفیگ‌های دستی</h4>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="card-title mb-0"><i class="fas fa-list"></i> کانفیگ‌های دستی</h4>
+                    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="manualConfigToggle" checked><label class="form-check-label" for="manualConfigToggle">نمایش نام</label></div>
+                </div>
                 <form id="addConfigForm">
-                    <div class="mb-3">
-                        <textarea id="new_config" name="new_config" rows="3" class="form-control" 
-                                  placeholder="هر کانفیگ را در خط جداگانه وارد کنید"></textarea>
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <button class="btn btn-success w-100" type="submit">
-                                <i class="fas fa-plus-circle"></i> افزودن
-                            </button>
-                        </div>
-                        <div class="col-6">
-                            <button id="delete-all-configs-btn" class="btn btn-danger w-100" type="button">
-                                <i class="fas fa-trash-alt"></i> حذف همه
-                            </button>
-                        </div>
-                    </div>
+                    <div class="mb-3"><textarea id="new_config" name="new_config" rows="3" class="form-control" placeholder="هر کانفیگ را در خط جداگانه وارد کنید"></textarea></div>
+                    <div class="row g-2"><div class="col-6"><button class="btn btn-success w-100" type="submit"><i class="fas fa-plus-circle"></i> افزودن</button></div><div class="col-6"><button id="delete-all-configs-btn" class="btn btn-danger w-100" type="button"><i class="fas fa-trash-alt"></i> حذف همه</button></div></div>
                 </form>
-                <div class="mt-3">
+                <div class="mt-3" id="manual-configs-list">
                     {% for config in custom_configs %}
-                    <div class="config-box">
-                        <code>{{ config }}</code>
+                    <div class="config-box" data-full-config="{{ config | e }}">
+                        <span class="config-content"></span>
                         <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-custom-green" onclick="copyToClipboard('{{ config }}')">
-                                <i class="fas fa-copy"></i> کپی
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteConfig({{ loop.index0 }})">
-                                <i class="fas fa-trash"></i> حذف
-                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="copyToClipboard('{{ config | e }}')"><i class="fas fa-copy"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteConfig({{ loop.index0 }})"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                     {% endfor %}
@@ -406,303 +121,233 @@
             </div>
         </div>
 
-        <div class="card mb-4 border-0 shadow-sm side-collection-card">
+        <div class="card mb-4 border-0 shadow-sm">
             <div class="card-body">
-                <h4 class="card-title"><i class="fas fa-link"></i> مجموعه جانبی</h4>
-                <form id="sideLinksForm">
-                    <div id="side-links-container" class="mb-2">
-                        {% for link in settings.side_collection_urls %}
-                        <div class="input-group mb-2">
-                            <input type="url" name="side_collection_urls" class="form-control" value="{{ link }}" placeholder="لینک مجموعه جانبی">
-                            <button class="btn btn-outline-danger remove-link-btn" type="button"><i class="fas fa-minus"></i></button>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <button id="add-link-btn" class="btn btn-success w-100 py-2" type="button">
-                                <i class="fas fa-plus"></i> افزودن لینک
-                            </button>
-                        </div>
-                        <div class="col-6">
-                            <button class="btn btn-primary w-100 py-2" type="submit">
-                                <i class="fas fa-save"></i> ذخیره لینک‌ها
-                            </button>
+                <h4 class="card-title"><i class="fas fa-users-cog"></i> مدیریت کاربران SSH</h4>
+                <form id="addSshUserForm"><div class="input-group mb-3"><input type="text" id="new_ssh_username" class="form-control" placeholder="نام کاربری جدید (فقط حروف و اعداد انگلیسی)" required><button class="btn btn-success" type="submit"><i class="fas fa-user-plus"></i> افزودن</button></div></form>
+                <div id="ssh-users-list" class="mt-3">
+                    {% for user in ssh_users %}
+                    <div class="config-box" id="ssh-user-{{ user }}">
+                        <span class="config-content" style="font-family: 'Vazirmatn', sans-serif;">{{ user }}</span>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-info" onclick="showPassword('{{ user }}')"><i class="fas fa-eye"></i></button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="changePassword('{{ user }}')"><i class="fas fa-key"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteSshUser('{{ user }}')"><i class="fas fa-user-times"></i></button>
                         </div>
                     </div>
-                </form>
+                    {% endfor %}
+                </div>
             </div>
         </div>
         
         <div class="card border-0 shadow-sm">
             <div class="card-body">
                 <h4 class="card-title"><i class="fas fa-search"></i> بررسی سابسکریپشن</h4>
-                <form id="checkSubForm">
-                    <div class="input-group mb-3">
-                        <input type="text" id="sub_url" name="sub_url" class="form-control rtl-placeholder" 
-                               placeholder="آدرس لینک سابسکریپشن">
-                        <button class="btn btn-info" type="submit">
-                            <i class="fas fa-check"></i> بررسی
-                        </button>
-                    </div>
-                </form>
+                <form id="checkSubForm"><div class="input-group mb-3"><input type="text" id="sub_url" name="sub_url" class="form-control" placeholder="آدرس لینک سابسکریپشن"><button class="btn btn-info" type="submit"><i class="fas fa-check"></i> بررسی</button></div></form>
                 <div id="check_result"></div>
             </div>
         </div>
     </div>
 
     <footer class="footer">
-        <div>
-            توسعه داده شده توسط <a href="https://shaammy.ir" target="_blank">shammay</a>
+        <div>توسعه داده شده توسط <a href="https://shammay.ir" target="_blank">shammay</a>
             <div class="mt-2">
                 <a href="https://t.me/shammay" target="_blank"><i class="fab fa-telegram"></i> تلگرام</a> |
                 <a href="https://facebook.com/shammayPC" target="_blank"><i class="fab fa-facebook"></i> فیسبوک</a> |
                 <a href="https://github.com/shammay-PC" target="_blank"><i class="fab fa-github"></i> گیت‌هاب</a>
             </div>
-            <div class="mt-2">
-            تمامی حقوق برای<a href="https://shaammy.ir" target="_blank">Ay Technic</a>محفوظ است
-            </div>
+            <div class="mt-2">تمامی حقوق برای <a href="https://shammay.ir" target="_blank">Ay Technic</a> محفوظ است</div>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTheme();
-            document.querySelector('.theme-toggle').addEventListener('click', toggleTheme);
-            document.getElementById('addConfigForm').addEventListener('submit', addConfig);
-            document.getElementById('delete-all-configs-btn').addEventListener('click', deleteAllConfigs);
-            document.getElementById('sideLinksForm').addEventListener('submit', saveSideLinks);
-            document.getElementById('checkSubForm').addEventListener('submit', checkSub);
-            document.getElementById('add-link-btn').addEventListener('click', addSideLinkInput);
-            document.getElementById('side-links-container').addEventListener('click', function(e) {
-                if (e.target.closest('.remove-link-btn')) {
-                    e.target.closest('.input-group').remove();
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => document.querySelectorAll(selector);
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                Swal.fire({ position: 'center', icon: 'success', title: 'کپی شد!', showConfirmButton: false, timer: 1000 });
+            }).catch(() => Swal.fire('خطا', 'مشکلی در کپی کردن رخ داد.', 'error'));
+        }
+        
+        function parseConfig(configStr) {
+            let protocol = 'OTHER', name = 'نامشخص', badgeClass = 'badge-other';
+            if (configStr.startsWith('vless://')) { protocol = 'VLESS'; badgeClass = 'badge-vless'; }
+            else if (configStr.startsWith('vmess://')) { protocol = 'VMESS'; badgeClass = 'badge-vmess'; }
+            else if (configStr.startsWith('ss://')) { protocol = 'SS'; badgeClass = 'badge-ss'; }
+            else if (configStr.startsWith('trojan://')) { protocol = 'TROJAN'; badgeClass = 'badge-trojan'; }
+            try { const namePart = configStr.split('#')[1]; if (namePart) name = decodeURIComponent(namePart).trim(); } catch (e) {}
+            return { protocol, name, badgeClass };
+        }
+        
+        function updateConfigDisplay(containerSelector, showName) {
+            $$(containerSelector).forEach(box => {
+                const fullConfig = box.dataset.fullConfig;
+                const contentSpan = box.querySelector('.config-content');
+                if (showName) {
+                    const { protocol, name, badgeClass } = parseConfig(fullConfig);
+                    contentSpan.innerHTML = `<span class="protocol-badge ${badgeClass}">${protocol}</span> <span class="config-name">${name}</span>`;
+                } else {
+                    contentSpan.innerHTML = `<code style="direction: ltr; white-space: nowrap; overflow-x: auto; flex-grow: 1;">${fullConfig}</code>`;
                 }
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTheme();
+            $('.theme-toggle').addEventListener('click', toggleTheme);
+            $('#addConfigForm').addEventListener('submit', addConfig);
+            $('#delete-all-configs-btn').addEventListener('click', deleteAllConfigs);
+            $('#checkSubForm').addEventListener('submit', checkSub);
+            $('#addSshUserForm').addEventListener('submit', addSshUser);
+            $('#manualConfigToggle').addEventListener('change', (e) => updateConfigDisplay('#manual-configs-list .config-box', e.target.checked));
+            updateConfigDisplay('#manual-configs-list .config-box', true);
         });
 
-        // --- Theme Functions ---
         function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
         }
-
-        function updateThemeIcon(theme) {
-            const icon = document.querySelector('.theme-toggle i');
-            if (theme === 'dark') {
-                icon.classList.replace('fa-moon', 'fa-sun');
-            } else {
-                icon.classList.replace('fa-sun', 'fa-moon');
-            }
-        }
-
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
-        }
+        function updateThemeIcon(theme) { $('.theme-toggle i').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; }
+        function loadTheme() { const theme = localStorage.getItem('theme') || 'light'; document.documentElement.setAttribute('data-theme', theme); updateThemeIcon(theme); }
         
-        // --- Side Collection Functions ---
-        function addSideLinkInput() {
-            const container = document.getElementById('side-links-container');
-            const newLinkInput = document.createElement('div');
-            newLinkInput.className = 'input-group mb-2';
-            newLinkInput.innerHTML = `
-                <input type="url" name="side_collection_urls" class="form-control" placeholder="لینک مجموعه جانبی جدید">
-                <button class="btn btn-outline-danger remove-link-btn" type="button"><i class="fas fa-minus"></i></button>
-            `;
-            container.appendChild(newLinkInput);
-        }
-
-        function saveSideLinks(event) {
-            event.preventDefault();
-            const form = document.getElementById('sideLinksForm');
-            const formData = new FormData(form);
-            fetch('/save-side-links', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    Swal.fire({ icon: 'success', title: 'موفق', text: data.message, timer: 2000, showConfirmButton: false });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'خطا', text: data.message });
-                }
-            }).catch(() => Swal.fire('خطا', 'مشکل در ارتباط با سرور', 'error'));
-        }
-        
-        // --- Manual Configs Functions ---
         function addConfig(event) {
             event.preventDefault();
-            const configs = document.getElementById("new_config").value.trim().split("\n");
+            const configs = $("#new_config").value.trim().split("\n");
             const formData = new URLSearchParams();
-            configs.forEach(cfg => {
-                if(cfg.trim()) formData.append("new_config", cfg)
-            });
+            configs.forEach(cfg => { if(cfg.trim()) formData.append("new_config", cfg) });
             fetch('/add-config', { method: 'POST', body: formData }).then(() => location.reload());
         }
-
         function deleteConfig(index) {
-            Swal.fire({
-                title: 'آیا مطمئن هستید؟',
-                text: "این کانفیگ حذف خواهد شد!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'بله، حذف کن!',
-                cancelButtonText: 'لغو'
-            }).then((result) => {
+            Swal.fire({ title: 'آیا مطمئن هستید؟', text: "این کانفیگ حذف خواهد شد!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'بله، حذف کن!', cancelButtonText: 'لغو' }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/delete-config', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: 'index=' + index
-                    }).then(() => location.reload());
+                    fetch('/delete-config', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'index=' + index }).then(() => location.reload());
+                }
+            });
+        }
+        function deleteAllConfigs() {
+            Swal.fire({ title: 'حذف تمام کانفیگ‌ها', text: "این عمل غیرقابل بازگشت است!", icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'بله، همه را حذف کن!', cancelButtonText: 'لغو' }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/delete-all-configs', { method: 'POST' }).then(res => res.json()).then(data => {
+                        if(data.status === 'success') Swal.fire('حذف شد!', data.message, 'success').then(() => location.reload());
+                        else Swal.fire('خطا!', data.message, 'error');
+                    }).catch(() => Swal.fire('خطا!', 'ارتباط با سرور برقرار نشد.', 'error'));
                 }
             });
         }
         
-        function deleteAllConfigs() {
-            Swal.fire({
-                title: 'حذف تمام کانفیگ‌های دستی',
-                text: "آیا مطمئن هستید؟ این عمل غیرقابل بازگشت است!",
-                icon: 'error',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'بله، همه را حذف کن!',
-                cancelButtonText: 'لغو'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch('/delete-all-configs', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        if(data.status === 'success'){
-                            Swal.fire('حذف شد!', data.message, 'success').then(() => location.reload());
-                        } else {
-                            Swal.fire('خطا!', data.message, 'error');
-                        }
-                    })
-                    .catch(() => Swal.fire('خطا!', 'ارتباط با سرور برقرار نشد.', 'error'));
-                }
-            });
-        }
-
-        // --- Other Functions ---
         function restartServices() {
-            Swal.fire({
-                title: 'آیا مطمئن هستید؟',
-                text: "سرویس‌ ریستارت خواهند شد!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'بله، ریستارت کن!',
-                cancelButtonText: 'لغو'
-            }).then((result) => {
+            Swal.fire({ title: 'ریستارت سرویس‌ها', text: "آیا مطمئن هستید؟", icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', confirmButtonText: 'بله، ریستارت کن!', cancelButtonText: 'لغو' }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/restart-services', {
-                        method: 'POST'
-                    }).then(response => {
-                        if (response.ok) {
-                            Swal.fire(
-                                'انجام شد!',
-                                'سرویس با موفقیت ریستارت شد.',
-                                'success'
-                            ).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire(
-                                'خطا!',
-                                'مشکلی در ریستارت سرویس رخ داد.',
-                                'error'
-                            );
-                        }
-                    }).catch(error => {
-                            Swal.fire(
-                                'انجام شد!',
-                                'سرویس با موفقیت ریستارت شد.',
-                                'success'
-                            ).then(() => {
-                                location.reload();
-                            });
+                    Swal.fire({ title: 'در حال ریستارت...', text: 'لطفا چند لحظه صبر کنید.', didOpen: () => Swal.showLoading() });
+                    fetch('/restart-services', { method: 'POST' }).finally(() => {
+                        setTimeout(() => location.reload(), 2000);
                     });
                 }
             });
         }
-
+        function syncExpiryDates() {
+            Swal.fire({ title: 'همسان‌سازی تاریخ انقضاء', text: "این عمل تاریخ انقضای کاربران زیرمجموعه را با کاربر اصلی یکسان می‌کند.", icon: 'question', showCancelButton: true, confirmButtonText: 'بله، انجام بده!', cancelButtonText: 'لغو' }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/sync-expiry-dates', { method: 'POST' }).then(res => res.json()).then(data => {
+                        if (data.status === 'success') Swal.fire('موفق!', data.message, 'success');
+                        else Swal.fire('خطا!', data.message, 'error');
+                    }).catch(() => Swal.fire('خطا!', 'ارتباط با سرور برقرار نشد.', 'error'));
+                }
+            });
+        }
+        
+        function addSshUser(event) {
+            event.preventDefault();
+            const username = $("#new_ssh_username").value.trim();
+            const formData = new URLSearchParams({ username });
+            fetch('/add-ssh-user', { method: 'POST', body: formData }).then(res => res.json()).then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({ icon: 'success', title: 'کاربر با موفقیت ساخته شد', html: `نام کاربری: <b>${data.username}</b><br>رمز عبور: <b>${data.password}</b><br><small>(این رمز را کپی و ذخیره کنید)</small>`, }).then(() => location.reload());
+                } else Swal.fire('خطا!', data.message, 'error');
+            }).catch(() => Swal.fire('خطا!', 'ارتباط با سرور برقرار نشد.', 'error'));
+        }
+        function deleteSshUser(username) {
+            Swal.fire({ title: `حذف کاربر ${username}`, text: "این عمل غیرقابل بازگشت است!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'بله، حذف کن!', cancelButtonText: 'لغو' }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/delete-ssh-user', { method: 'POST', body: new URLSearchParams({ username }) }).then(res => res.json()).then(data => {
+                        if (data.status === 'success') {
+                            $(`#ssh-user-${username}`).remove();
+                            Swal.fire('حذف شد!', data.message, 'success');
+                        } else Swal.fire('خطا!', data.message, 'error');
+                    });
+                }
+            });
+        }
+        function showPassword(username) {
+            fetch('/get-ssh-password', { method: 'POST', body: new URLSearchParams({ username }) }).then(res => res.json()).then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({ title: `رمز عبور: ${username}`, html: `<input type="text" value="${data.password}" class="form-control text-center" readonly onclick="this.select()">`, icon: 'info', confirmButtonText: 'کپی و بستن' }).then((r) => r.isConfirmed && navigator.clipboard.writeText(data.password));
+                } else Swal.fire('خطا!', data.message, 'error');
+            });
+        }
+        async function changePassword(username) {
+            const { value: password } = await Swal.fire({ title: `تغییر رمز عبور ${username}`, input: 'text', inputLabel: 'رمز عبور جدید را وارد کنید', inputPlaceholder: 'حداقل ۶ کاراکتر', showCancelButton: true, confirmButtonText: 'تغییر رمز', cancelButtonText: 'لغو', inputValidator: (v) => (!v || v.length < 6) ? 'رمز عبور باید حداقل ۶ کاراکتر باشد!' : null });
+            if (password) {
+                fetch('/change-ssh-password', { method: 'POST', body: new URLSearchParams({ username, password }) }).then(res => res.json()).then(data => {
+                    if (data.status === 'success') Swal.fire('موفق!', data.message, 'success');
+                    else Swal.fire('خطا!', data.message, 'error');
+                });
+            }
+        }
+        
         function checkSub(event) {
             event.preventDefault();
-            const url = document.getElementById("sub_url").value;
-            if (!url.trim()) {
-                Swal.fire('خطا!', 'لطفا آدرس سابسکریپشن را وارد کنید', 'error');
-                return;
-            }
+            const url = $("#sub_url").value;
+            if (!url.trim()) return Swal.fire('خطا!', 'لطفا آدرس سابسکریپشن را وارد کنید', 'error');
 
-            const resultDiv = document.getElementById("check_result");
-            resultDiv.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">در حال بررسی سابسکریپشن...</p></div>';
+            const resultDiv = $("#check_result");
+            resultDiv.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">در حال بررسی...</p></div>';
 
-            fetch('/check-sub', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'sub_url=' + encodeURIComponent(url)
-            })
-            .then(res => res.text())
-            .then(text => {
-                resultDiv.innerHTML = '';
+            fetch('/check-sub', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'sub_url=' + encodeURIComponent(url) }).then(res => res.text()).then(text => {
                 const configs = text.trim().split("\n").filter(line => line.trim());
                 if (configs.length === 0 || (configs.length > 0 && configs[0].startsWith('خطا'))) {
-                    resultDiv.innerHTML = `<div class="alert alert-warning">${configs[0] || 'هیچ کانفیگی در سابسکریپشن یافت نشد'}</div>`;
+                    resultDiv.innerHTML = `<div class="alert alert-warning">${configs[0] || 'هیچ کانفیگی یافت نشد'}</div>`;
                     return;
                 }
                 
-                const copyAllBtn = document.createElement('button');
-                copyAllBtn.className = 'btn btn-primary btn-copy-all';
-                copyAllBtn.innerHTML = '<i class="fas fa-copy"></i> کپی همه کانفیگ‌ها';
-                copyAllBtn.onclick = () => copyAllConfigs(configs);
-                resultDiv.appendChild(copyAllBtn);
-                
-                configs.forEach((cfg, i) => {
+                resultDiv.innerHTML = `
+                    <button class="btn btn-primary btn-copy-all" onclick="copyAllConfigs(this)"><i class="fas fa-copy"></i> کپی همه کانفیگ‌ها</button>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">نتیجه (${configs.length} کانفیگ)</h5>
+                        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="subResultToggle" checked onchange="updateConfigDisplay('#sub-results-list .config-box', this.checked)"><label class="form-check-label" for="subResultToggle">نمایش نام</label></div>
+                    </div>
+                    <div id="sub-results-list"></div>
+                `;
+
+                const subListDiv = $('#sub-results-list');
+                const fullConfigsArray = [];
+                configs.forEach((cfg) => {
+                    fullConfigsArray.push(cfg);
                     const box = document.createElement('div');
-                    box.className = 'sub-config sub-box mb-2';
-                    box.innerHTML = `
-                        <code title="${cfg.replace(/"/g, '&quot;')}">${cfg}</code>
-                        <button class="btn btn-light btn-copy-sub" onclick="copyToClipboard('${cfg.replace(/'/g, "\\'")}')">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    `;
-                    resultDiv.appendChild(box);
+                    box.className = 'config-box sub-config';
+                    box.dataset.fullConfig = cfg;
+                    box.innerHTML = `<span class="config-content"></span><button class="btn btn-sm btn-light" onclick="copyToClipboard('${cfg.replace(/'/g, "\\'")}')"><i class="fas fa-copy"></i></button>`;
+                    subListDiv.appendChild(box);
                 });
-            })
-            .catch(error => {
-                resultDiv.innerHTML = `<div class="alert alert-danger">خطا در بررسی سابسکریپشن: ${error.message}</div>`;
+
+                // Store the full configs in the container for the "Copy All" button
+                resultDiv.dataset.fullConfigs = JSON.stringify(fullConfigsArray);
+                updateConfigDisplay('#sub-results-list .config-box', true);
+            }).catch(error => {
+                resultDiv.innerHTML = `<div class="alert alert-danger">خطا: ${error.message}</div>`;
             });
         }
-
-        function copyAllConfigs(configs) {
-            const allConfigs = configs.join('\n');
-            navigator.clipboard.writeText(allConfigs).then(() => {
-                Swal.fire({ position: 'center', icon: 'success', title: 'همه کانفیگ‌ها کپی شدند', showConfirmButton: false, timer: 1500 });
-            }).catch(err => {
-                Swal.fire('خطا!', 'مشکلی در کپی کردن رخ داد', 'error');
-            });
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                Swal.fire({ position: 'center', icon: 'success', title: 'کانفیگ کپی شد', showConfirmButton: false, timer: 1500 });
-            }).catch(err => {
-                Swal.fire('خطا!', 'مشکلی در کپی کردن رخ داد.', 'error');
-            });
+        function copyAllConfigs(button) {
+            const resultDiv = button.parentElement;
+            const configs = JSON.parse(resultDiv.dataset.fullConfigs || '[]');
+            if(configs.length > 0){
+                copyToClipboard(configs.join('\n'));
+            }
         }
     </script>
 </body>
