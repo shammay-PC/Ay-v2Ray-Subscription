@@ -2,15 +2,15 @@
   "username": "AyAdmin",
   "password": "AyPass",
   "web_port": 4321,
-  "domain": "org.shammay.ir",
+  "domain": "www.shammay.ir",
   "main_port": 8868,
   "sub_path": "sub",
   "extra_ports": [
     6854,
     8688
   ],
-  "cert_path": "/root/cert/org.shammay.ir/fullchain.pem",
-  "key_path": "/root/cert/org.shammay.ir/privkey.pem",
+  "cert_path": "/root/cert/www.shammay.ir/fullchain.pem",
+  "key_path": "/root/cert/www.shammay.ir/privkey.pem",
   "side_collection_urls": [],
   "expired_message": "\u26d4 \u0627\u0634\u062a\u0631\u0627\u06a9 \u0634\u0645\u0627 \u0645\u0646\u0642\u0636\u06cc \u0634\u062f\u0647\u060c \u0644\u0637\u0641\u0627 \u062a\u0645\u062f\u06cc\u062f \u06a9\u0646\u06cc\u062f \u26d4",
   "no_sub_message": "\u26d4 \u0634\u0645\u0627 \u0627\u0634\u062a\u0631\u0627\u06a9 Ay VPN \u0646\u062f\u0627\u0631\u06cc\u062f \u26d4",
