@@ -86,7 +86,7 @@ def sync_ssh_users_on_startup():
 def load_config():
     default_config = {
         "username": "AyAdmin", "password": "AyPass", "web_port": 6854, "main_port": 8868,
-        "extra_ports": [6854, 8688, 4586], "domain": "www.shammay.ir", "sub_path": "sub",
+        "extra_ports": [6854, 8688, 4586], "domain": "sub.shammay.ir", "sub_path": "sub",
         "cert_path": "", "key_path": "", "side_collection_urls": [],
         "expired_message": "⛔ اشتراک شما منقضی شده، لطفا تمدید کنید ⛔",
         "no_sub_message": "⛔ شما اشتراکی در این سرویس ندارید ⛔",
