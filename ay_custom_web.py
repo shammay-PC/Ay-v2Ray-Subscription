@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
-Ay-Custom-Sub Web Panel v4.0.0
+Ay-Custom-Sub Web Panel v4.1.0
 
 - Flask app served by Waitress behind mandatory SSL.
 - Login is embedded in the dashboard template (no separate login page).
 - Manages manual configs, SSH users, side collections, services,
-  X-UI client sync and expiry-date synchronisation.
+  X-UI client sync, service restarter, and expiry-date synchronisation.
 """
 
 import base64
 import json
 import os
 import random
+import re
 import ssl
 import string
 import subprocess
@@ -23,7 +24,6 @@ from flask import (
     Flask, Response, flash, jsonify, redirect, render_template,
     request, session, url_for,
 )
-from waitress import serve
 
 PROJECT_DIR = "/root/ay-custom-sub"
 CONFIG_PATH = os.path.join(PROJECT_DIR, "config.json")
@@ -32,10 +32,15 @@ SSH_USERS_FILE = os.path.join(PROJECT_DIR, "Ay_SSH_Users")
 SIDE_COLLECTIONS_FILE = os.path.join(PROJECT_DIR, "Side_Collections.json")
 XUI_DB_PATH = "/etc/x-ui/x-ui.db"
 
+RESTARTER_SERVICE = "Ay-Custom-Restarter.service"
+RESTARTER_TIMER = "Ay-Custom-Restarter.timer"
+RESTARTER_TIMER_PATH = f"/etc/systemd/system/{RESTARTER_TIMER}"
+XUI_SYNC_SCRIPT = "/root/xui-sync-job.sh"
+CRON_TAG = "xui-sync-job.sh"
+
 app = Flask(__name__)
 app.secret_key = "AyCustomSecretKey-v4"
 
-# In-memory password cache (survives only while process lives).
 temp_passwords = {}
 
 
@@ -72,6 +77,10 @@ def load_config():
             "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1"
             "?type=ws#{MESSAGE}"
         ),
+        "restarter_interval_minutes": 10,
+        "restarter_enabled": False,
+        "xui_sync_enabled": False,
+        "xui_sync_interval_minutes": 60,
     }
     if not os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH, "w", encoding="utf-8") as fh:
@@ -96,16 +105,10 @@ def save_config(config):
 # SSH users
 # ---------------------------------------------------------------------------
 def load_ssh_users():
-    """
-    Return list of dicts: [{'username': str, 'password': str}, ...].
-    Migrates v3 single-column format transparently.
-    """
     if not os.path.exists(SSH_USERS_FILE):
         return []
-
     with open(SSH_USERS_FILE, "r", encoding="utf-8") as fh:
         raw_lines = [ln.strip() for ln in fh if ln.strip()]
-
     migrated = False
     users = []
     for line in raw_lines:
@@ -113,13 +116,10 @@ def load_ssh_users():
             u, p = line.split(":", 1)
             users.append({"username": u.strip(), "password": p.strip()})
         else:
-            # v3 format: username only.
             users.append({"username": line, "password": generate_random_password()})
             migrated = True
-
     if migrated:
         save_ssh_users(users)
-
     return users
 
 
@@ -130,22 +130,15 @@ def save_ssh_users(users):
 
 
 def sync_ssh_users_on_startup():
-    """
-    Recreate any user present in the file but missing on the system,
-    with the stored password (no random rotation).
-    """
     print("[ay-custom-web] Syncing SSH users...", flush=True)
     run_command("groupadd --force AyVpnUsers")
-
     users = load_ssh_users()
     if not users:
         return
-
     result = run_command("getent group AyVpnUsers | cut -d: -f4")
     system_users = (
         result["output"].split(",") if result["success"] and result["output"] else []
     )
-
     for entry in users:
         username = entry["username"]
         if username in system_users:
@@ -210,6 +203,81 @@ def set_sync_clients_state(value: bool):
     return (True, "ok") if res["success"] else (False, res["error"])
 
 
+def get_cron_interval():
+    """Return the current cron interval (minutes) for xui-sync-job.sh, or None."""
+    res = run_command("crontab -l 2>/dev/null | grep xui-sync-job.sh")
+    if not res["success"] or not res["output"]:
+        return None
+    m = re.search(r"^\s*(\S+)\s+\S+\s+\S+\s+\S+\s+\S+", res["output"])
+    if not m:
+        return None
+    expr = m.group(1)
+    if expr.startswith("*/"):
+        try:
+            return int(expr[2:])
+        except ValueError:
+            return None
+    if expr.isdigit():
+        return 60
+    return None
+
+
+def get_cron_enabled():
+    res = run_command("crontab -l 2>/dev/null | grep xui-sync-job.sh")
+    return res["success"] and bool(res["output"])
+
+
+def _install_cron_line(interval):
+    """Replace any existing xui-sync-job.sh cron line with a new one."""
+    if interval == 60:
+        expr = "0 * * * *"
+    else:
+        expr = f"*/{interval} * * * *"
+    new_line = f"{expr} /bin/bash {XUI_SYNC_SCRIPT}"
+    # Get current crontab, filter out old lines.
+    res = run_command("crontab -l 2>/dev/null")
+    current = res["output"] if res["success"] else ""
+    kept = [ln for ln in current.splitlines() if CRON_TAG not in ln]
+    kept.append(new_line)
+    payload = "\n".join(kept) + "\n"
+    p = subprocess.run(["crontab", "-"], input=payload, text=True,
+                       capture_output=True)
+    return p.returncode == 0
+
+
+def _remove_cron_line():
+    res = run_command("crontab -l 2>/dev/null")
+    current = res["output"] if res["success"] else ""
+    kept = [ln for ln in current.splitlines() if CRON_TAG not in ln]
+    payload = "\n".join(kept) + ("\n" if kept else "")
+    p = subprocess.run(["crontab", "-"], input=payload, text=True,
+                       capture_output=True)
+    return p.returncode == 0
+
+
+# ---------------------------------------------------------------------------
+# Restarter helpers (systemd timer)
+# ---------------------------------------------------------------------------
+def get_restarter_status():
+    active = run_command(f"systemctl is-active {RESTARTER_TIMER}")["output"] or "inactive"
+    enabled = run_command(f"systemctl is-enabled {RESTARTER_TIMER}")["output"] or "disabled"
+    return active == "active", enabled == "enabled"
+
+
+def set_restarter_timer_interval(minutes):
+    if not os.path.exists(RESTARTER_TIMER_PATH):
+        return False, "Restarter timer file not found"
+    cmd = (
+        f"sed -i 's/^OnUnitActiveSec=.*/OnUnitActiveSec={minutes}min/' "
+        f"{RESTARTER_TIMER_PATH}"
+    )
+    res = run_command(cmd)
+    if not res["success"]:
+        return False, res["error"]
+    run_command("systemctl daemon-reload")
+    return True, "ok"
+
+
 # ---------------------------------------------------------------------------
 # Auth helpers
 # ---------------------------------------------------------------------------
@@ -243,7 +311,6 @@ def login():
             session["logged_in"] = True
             return redirect(url_for("dashboard"))
         flash("نام کاربری یا رمز عبور اشتباه است", "danger")
-    # If already logged in, go straight to dashboard.
     if session.get("logged_in"):
         return redirect(url_for("dashboard"))
     return render_template("dashboard.html", settings=config, logged_in=False)
@@ -348,7 +415,6 @@ def delete_all_configs():
 @app.route("/update-config", methods=["POST"])
 @login_required
 def update_config():
-    """Edit an existing manual config in place."""
     index = int(request.form.get("index", -1))
     new_value = (request.form.get("config") or "").strip()
     if index < 0 or not new_value:
@@ -406,10 +472,6 @@ def delete_side_collection():
 @app.route("/side-collections/refresh", methods=["POST"])
 @login_required
 def refresh_side_collection():
-    """
-    Fetch the collection and, for base64, decode it.
-    Preserves per-config rename/visible flags across refreshes.
-    """
     idx = int(request.form.get("index", -1))
     data = load_side_collections()
     if not (0 <= idx < len(data)):
@@ -453,7 +515,6 @@ def refresh_side_collection():
 @app.route("/side-collections/update", methods=["POST"])
 @login_required
 def update_side_collection():
-    """Update global_rename and per-config rename/visible flags."""
     idx = int(request.form.get("index", -1))
     data = load_side_collections()
     if not (0 <= idx < len(data)):
@@ -562,7 +623,6 @@ def change_ssh_password():
 @login_required
 def get_ssh_password():
     username = request.form.get("username")
-    # Prefer the stored password from file.
     users = load_ssh_users()
     for u in users:
         if u["username"] == username:
@@ -575,7 +635,6 @@ ALLOWED_SERVICES = (
     "ay-custom-sub",
     "ay-custom-web",
     "x-ui",
-    "ay-sync-clients.timer",
 )
 
 
@@ -597,7 +656,7 @@ def service_action(name, action):
 @login_required
 def service_status():
     out = {}
-    for svc in ("ay-custom-sub", "ay-custom-web", "x-ui", "ay-sync-clients.timer"):
+    for svc in ("ay-custom-sub", "ay-custom-web", "x-ui"):
         res = run_command(
             f"systemctl is-active {svc}; systemctl is-enabled {svc}"
         )
@@ -639,20 +698,91 @@ def client_sync_update():
     ok, msg = set_sync_clients_state(enable)
     if not ok:
         return jsonify({"status": "error", "message": msg}), 500
-
-    # Update timer interval.
-    timer_file = "/etc/systemd/system/ay-sync-clients.timer"
-    if os.path.exists(timer_file):
-        run_command(
-            f"sed -i 's/^OnUnitActiveSec=.*/OnUnitActiveSec={interval}min/' {timer_file}"
-        )
-        run_command("systemctl daemon-reload")
-        if enable:
-            run_command("systemctl enable --now ay-sync-clients.timer")
-        else:
-            run_command("systemctl disable --now ay-sync-clients.timer")
-
     return jsonify({"status": "success", "message": "تنظیمات Client Sync ذخیره شد."})
+
+
+# --- Restarter (new) -------------------------------------------------------
+@app.route("/restarter", methods=["GET"])
+@login_required
+def restarter_state():
+    config = load_config()
+    active, enabled = get_restarter_status()
+    return jsonify({
+        "enabled": enabled,
+        "active": active,
+        "interval": config.get("restarter_interval_minutes", 10),
+    })
+
+
+@app.route("/restarter", methods=["POST"])
+@login_required
+def restarter_update():
+    enable = request.form.get("enable", "false").lower() == "true"
+    interval = int(request.form.get("interval", 10))
+    if interval < 1 or interval > 1440:
+        return jsonify({"status": "error", "message": "بازه باید بین ۱ تا ۱۴۴۰ دقیقه باشد."}), 400
+
+    config = load_config()
+    config["restarter_interval_minutes"] = interval
+    config["restarter_enabled"] = enable
+    save_config(config)
+
+    ok, msg = set_restarter_timer_interval(interval)
+    if not ok:
+        return jsonify({"status": "error", "message": msg}), 500
+
+    if enable:
+        run_command(f"systemctl enable --now {RESTARTER_TIMER}")
+    else:
+        run_command(f"systemctl disable --now {RESTARTER_TIMER}")
+
+    return jsonify({"status": "success", "message": "تنظیمات Restarter ذخیره شد."})
+
+
+# --- X-UI sync with cron (new) --------------------------------------------
+@app.route("/xui-sync", methods=["GET"])
+@login_required
+def xui_sync_state():
+    sync_clients = get_sync_clients_state()
+    cron_enabled = get_cron_enabled()
+    interval = get_cron_interval() or 60
+    return jsonify({
+        "sync_clients": sync_clients,
+        "cron_enabled": cron_enabled,
+        "interval": interval,
+    })
+
+
+@app.route("/xui-sync", methods=["POST"])
+@login_required
+def xui_sync_update():
+    enable = request.form.get("enable", "false").lower() == "true"
+    interval = int(request.form.get("interval", 60))
+    if interval < 1 or interval > 1440:
+        return jsonify({"status": "error", "message": "بازه باید بین ۱ تا ۱۴۴۰ دقیقه باشد."}), 400
+
+    if enable:
+        if not _install_cron_line(interval):
+            return jsonify({"status": "error", "message": "خطا در نصب cron"}), 500
+    else:
+        _remove_cron_line()
+
+    config = load_config()
+    config["xui_sync_enabled"] = enable
+    config["xui_sync_interval_minutes"] = interval
+    save_config(config)
+
+    return jsonify({"status": "success", "message": "تنظیمات X-UI Sync ذخیره شد."})
+
+
+@app.route("/xui-sync/run", methods=["POST"])
+@login_required
+def xui_sync_run_now():
+    if not os.path.exists(XUI_SYNC_SCRIPT):
+        return jsonify({"status": "error", "message": "اسکریپت یافت نشد."}), 404
+    # Fire-and-forget: run in background so the HTTP request returns quickly.
+    subprocess.Popen(["/bin/bash", XUI_SYNC_SCRIPT])
+    return jsonify({"status": "success", "message": "اسکریپت در پس‌زمینه اجرا شد."})
 
 
 # --- Expiry sync -----------------------------------------------------------
@@ -700,18 +830,15 @@ def check_sub():
     sub_url = request.form.get("sub_url")
     if not sub_url:
         return "No URL provided"
-
     try:
         res = requests.get(sub_url, timeout=7, verify=False)
         if res.status_code != 200:
             return f"خطا در دریافت لینک: {res.status_code}"
-
         content = res.text.strip()
         try:
             content = base64.b64decode(content).decode("utf-8")
         except Exception:
             pass
-
         configs = [ln.strip() for ln in content.splitlines() if ln.strip()]
         return "\n".join(configs)
     except Exception as exc:
@@ -721,31 +848,26 @@ def check_sub():
 # ---------------------------------------------------------------------------
 # SSL + server bootstrap
 # ---------------------------------------------------------------------------
-def build_ssl_context(cert_path, key_path):
-    cert_path = cert_path or "/root/cert/cert.pem"
-    key_path = key_path or "/root/cert/privkey.pem"
-
-    if not os.path.exists(cert_path) or not os.path.exists(key_path):
-        print(
-            f"[ay-custom-web] FATAL: SSL cert/key missing. cert={cert_path} key={key_path}",
-            flush=True,
-        )
-        print("[ay-custom-web] Refusing to start without HTTPS.", flush=True)
-        sys.exit(1)
-
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ctx.load_cert_chain(certfile=cert_path, keyfile=key_path)
-    return ctx
-
-
 def main():
     sync_ssh_users_on_startup()
     config = load_config()
     port = int(config.get("web_port", 4321))
-    ssl_ctx = build_ssl_context(config.get("cert_path"), config.get("key_path"))
+    cert_path = config.get("cert_path") or "/root/cert/cert.pem"
+    key_path = config.get("key_path") or "/root/cert/privkey.pem"
+
+    if not os.path.exists(cert_path) or not os.path.exists(key_path):
+        print(f"[ay-custom-web] FATAL: SSL cert/key not found. cert={cert_path} key={key_path}", flush=True)
+        sys.exit(1)
 
     print(f"[ay-custom-web] HTTPS panel on port {port}", flush=True)
-    serve(app, host="0.0.0.0", port=port, threads=8, ssl_context=ssl_ctx)
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        ssl_context=(cert_path, key_path),
+        debug=False,
+        threaded=True,
+        use_reloader=False,
+    )
 
 
 if __name__ == "__main__":

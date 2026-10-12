@@ -1,0 +1,10 @@
+[Unit]
+Description=Runs Ay-Custom-Restarter every N minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+Unit=Ay-Custom-Restarter.service
+
+[Install]
+WantedBy=timers.target

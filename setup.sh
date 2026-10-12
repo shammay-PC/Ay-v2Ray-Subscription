@@ -1,5 +1,5 @@
 #!/bin/bash
-# Ay-Custom-Sub v4.0.0 installer
+# Ay-Custom-Sub v4.1.0 installer
 set -e
 
 GREEN='\033[0;32m'; RED='\033[0;31m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -19,8 +19,9 @@ require_root() {
 install_deps() {
   print_info "Installing system dependencies..."
   apt update
-  apt install -y python3 python3-pip git sqlite3
+  apt install -y python3 python3-pip git sqlite3 cron
   pip3 install --upgrade flask requests waitress
+  systemctl enable --now cron 2>/dev/null || systemctl enable --now crond 2>/dev/null || true
 }
 
 prompt_settings() {
@@ -65,7 +66,11 @@ write_config() {
   "side_collection_urls": [],
   "expired_message": "⛔ اشتراک شما منقضی شده، لطفا تمدید کنید ⛔",
   "no_sub_message": "⛔ شما اشتراکی در این سرویس ندارید ⛔",
-  "dummy_config_template": "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1?type=ws#{MESSAGE}"
+  "dummy_config_template": "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1?type=ws#{MESSAGE}",
+  "restarter_interval_minutes": 10,
+  "restarter_enabled": false,
+  "xui_sync_enabled": false,
+  "xui_sync_interval_minutes": 60
 }
 EOF
   echo "PANEL_URL=https://$DOMAIN:$WEB_PORT" > "$PANEL_INFO_FILE"
@@ -73,17 +78,50 @@ EOF
   echo "PANEL_PASS=$PANEL_PASS" >> "$PANEL_INFO_FILE"
 }
 
+install_xui_sync_script() {
+  print_info "Installing /root/xui-sync-job.sh ..."
+  cat > /root/xui-sync-job.sh <<'EOF'
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value='true' WHERE key='syncClients';"
+sleep 300
+x-ui stop
+sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value='false' WHERE key='syncClients';"
+x-ui start
+x-ui restart
+EOF
+  chmod +x /root/xui-sync-job.sh
+
+  # Add cron if not already present.
+  if ! crontab -l 2>/dev/null | grep -q "xui-sync-job.sh"; then
+    (crontab -l 2>/dev/null; echo "0 * * * * /bin/bash /root/xui-sync-job.sh") | crontab -
+    print_success "Cron job for xui-sync-job.sh added."
+  else
+    print_info "Cron job already exists."
+  fi
+}
+
 install_services() {
   print_info "Installing systemd units..."
   cp "$PROJECT_DIR/systemd/ay-custom-sub.service" /etc/systemd/system/
   cp "$PROJECT_DIR/systemd/ay-custom-web.service" /etc/systemd/system/
-  cp "$PROJECT_DIR/systemd/ay-sync-clients.service" /etc/systemd/system/
-  cp "$PROJECT_DIR/systemd/ay-sync-clients.timer"   /etc/systemd/system/
+  cp "$PROJECT_DIR/systemd/Ay-Custom-Restarter.service" /etc/systemd/system/
+  cp "$PROJECT_DIR/systemd/Ay-Custom-Restarter.timer"   /etc/systemd/system/
+
+  # Remove legacy ay-sync-clients units if they exist.
+  if [ -f /etc/systemd/system/ay-sync-clients.timer ]; then
+    systemctl disable --now ay-sync-clients.timer 2>/dev/null || true
+    rm -f /etc/systemd/system/ay-sync-clients.timer
+    rm -f /etc/systemd/system/ay-sync-clients.service
+    print_info "Removed legacy ay-sync-clients units."
+  fi
+
   systemctl daemon-reload
   systemctl enable ay-custom-sub.service ay-custom-web.service
   systemctl start  ay-custom-sub.service ay-custom-web.service
-  # ay-sync-clients stays disabled by default.
-  systemctl disable --now ay-sync-clients.timer || true
+
+  # Restarter stays disabled by default.
+  systemctl disable --now Ay-Custom-Restarter.timer 2>/dev/null || true
 
   ln -sf "$PROJECT_DIR/setup.sh" /usr/local/bin/ay-sub
   chmod +x /usr/local/bin/ay-sub
@@ -103,6 +141,7 @@ install_project() {
 
   prompt_settings
   write_config
+  install_xui_sync_script
   install_services
 
   print_success "✅ Installation complete!"
@@ -120,18 +159,66 @@ update_panel() {
   print_success "Panel updated."
 }
 
-manage_client_sync() {
+manage_restarter() {
   while true; do
     clear
-    echo -e "${YELLOW}=== Client Sync Timer ===${NC}"
-    systemctl status ay-sync-clients.timer --no-pager | grep -E "Loaded|Active|Trigger" || true
-    echo "1) Enable   2) Disable   3) Restart   4) Logs   0) Back"
+    echo -e "${YELLOW}=== Service Restarter ===${NC}"
+    systemctl status Ay-Custom-Restarter.timer --no-pager | grep -E "Loaded|Active|Trigger" || true
+    echo "1) Enable   2) Disable   3) Restart   4) Set interval   0) Back"
     read -p "> " c
     case $c in
-      1) systemctl enable --now ay-sync-clients.timer ;;
-      2) systemctl disable --now ay-sync-clients.timer ;;
-      3) systemctl restart ay-sync-clients.timer ;;
-      4) journalctl -u ay-sync-clients.service -n 50 --no-pager ;;
+      1) systemctl enable --now Ay-Custom-Restarter.timer ;;
+      2) systemctl disable --now Ay-Custom-Restarter.timer ;;
+      3) systemctl restart Ay-Custom-Restarter.timer ;;
+      4)
+         read -p "Interval (minutes): " m
+         if [[ "$m" =~ ^[0-9]+$ ]] && [ "$m" -ge 1 ]; then
+           sed -i "s/^OnUnitActiveSec=.*/OnUnitActiveSec=${m}min/" /etc/systemd/system/Ay-Custom-Restarter.timer
+           systemctl daemon-reload
+           systemctl restart Ay-Custom-Restarter.timer 2>/dev/null || true
+           print_success "Interval set to ${m}min."
+         else
+           print_error "Invalid interval."
+         fi
+         ;;
+      0) return ;;
+    esac
+    read -p "Enter..."
+  done
+}
+
+manage_xui_sync() {
+  while true; do
+    clear
+    echo -e "${YELLOW}=== X-UI Client Sync (cron) ===${NC}"
+    crontab -l 2>/dev/null | grep xui-sync-job.sh || echo "No cron job installed."
+    echo "1) Enable (default hourly)   2) Disable   3) Set interval   4) Run now   0) Back"
+    read -p "> " c
+    case $c in
+      1)
+         if ! crontab -l 2>/dev/null | grep -q "xui-sync-job.sh"; then
+           (crontab -l 2>/dev/null; echo "0 * * * * /bin/bash /root/xui-sync-job.sh") | crontab -
+           print_success "Cron enabled."
+         else
+           print_info "Already enabled."
+         fi
+         ;;
+      2)
+         crontab -l 2>/dev/null | grep -v "xui-sync-job.sh" | crontab -
+         print_success "Cron disabled."
+         ;;
+      3)
+         read -p "Interval (minutes): " m
+         if [[ "$m" =~ ^[0-9]+$ ]] && [ "$m" -ge 1 ] && [ "$m" -le 1440 ]; then
+           if [ "$m" -eq 60 ]; then expr="0 * * * *"; else expr="*/$m * * * *"; fi
+           current=$(crontab -l 2>/dev/null | grep -v "xui-sync-job.sh")
+           printf "%s\n%s /bin/bash /root/xui-sync-job.sh\n" "$current" "$expr" | crontab -
+           print_success "Interval set to ${m}min."
+         else
+           print_error "Invalid interval."
+         fi
+         ;;
+      4) /bin/bash /root/xui-sync-job.sh ;;
       0) return ;;
     esac
     read -p "Enter..."
@@ -165,13 +252,17 @@ show_live_logs() {
 uninstall_project() {
   read -p "Uninstall? (y/N): " c
   [[ "$c" =~ ^[Yy]$ ]] || return
-  systemctl stop  ay-custom-sub ay-custom-web ay-sync-clients.timer || true
-  systemctl disable ay-custom-sub ay-custom-web ay-sync-clients.timer || true
+  systemctl stop  ay-custom-sub ay-custom-web Ay-Custom-Restarter.timer || true
+  systemctl disable ay-custom-sub ay-custom-web Ay-Custom-Restarter.timer || true
   rm -f /etc/systemd/system/ay-custom-sub.service
   rm -f /etc/systemd/system/ay-custom-web.service
+  rm -f /etc/systemd/system/Ay-Custom-Restarter.service
+  rm -f /etc/systemd/system/Ay-Custom-Restarter.timer
   rm -f /etc/systemd/system/ay-sync-clients.service
   rm -f /etc/systemd/system/ay-sync-clients.timer
   systemctl daemon-reload
+  crontab -l 2>/dev/null | grep -v "xui-sync-job.sh" | crontab - || true
+  rm -f /root/xui-sync-job.sh
   rm -rf "$PROJECT_DIR"
   rm -f /usr/local/bin/ay-sub
   print_success "Uninstalled."
@@ -185,7 +276,7 @@ print_menu() {
   echo " dP__Yb    8P      YbdP  88\"\"\"  88 Y88 "
   echo "dP\"\"\"\"Yb  dP        YP   88     88  Y8 "
   echo -e "${NC}"
-  echo -e "${RED}        Ay Technic Panel v4.0.0${NC}"
+  echo -e "${RED}        Ay Technic Panel v4.1.0${NC}"
   echo -e "${GREEN}      Developed by shammay${NC}"
   echo -e "${YELLOW}======================================${NC}"
   if [ -f "$PANEL_INFO_FILE" ]; then source "$PANEL_INFO_FILE"; echo "URL: $PANEL_URL"; fi
@@ -193,10 +284,11 @@ print_menu() {
   echo "2) 🔄 Update Panel"
   echo "3) 🔁 Restart Main Services"
   echo "4) 🛠️  Configuration (nano config.json)"
-  echo "5) ⏱️  Manage Client Sync timer"
-  echo "6) ⚙️  Manage Services"
-  echo "7) 📜 Live Logs"
-  echo "8) 🗃️  Uninstall"
+  echo "5) ⏱️  Manage Service Restarter"
+  echo "6) 🔄 Manage X-UI Client Sync"
+  echo "7) ⚙️  Manage Services"
+  echo "8) 📜 Live Logs"
+  echo "9) 🗃️  Uninstall"
   echo "0) ❌ Exit"
 }
 
@@ -210,10 +302,11 @@ while true; do
     2) update_panel ;;
     3) systemctl restart ay-custom-sub ay-custom-web && print_success "Restarted." ;;
     4) nano "$PROJECT_DIR/config.json" ;;
-    5) manage_client_sync ;;
-    6) manage_services ;;
-    7) show_live_logs ;;
-    8) uninstall_project ;;
+    5) manage_restarter ;;
+    6) manage_xui_sync ;;
+    7) manage_services ;;
+    8) show_live_logs ;;
+    9) uninstall_project ;;
     0) exit 0 ;;
     *) print_error "Invalid option" ;;
   esac
