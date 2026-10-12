@@ -3,1141 +3,627 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ay-Custom-Sub</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <title>Ay-Custom-Sub v4.0.0</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2196f3',
+                        darkbg: '#1e1e2d',
+                        lightbg: '#f5f5f5',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Vazirmatn -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        :root {
-            --primary-light: #8b5cf6; --primary-light-rgb: 139, 92, 246;
-            --primary-dark: #4f46e5; --primary-dark-rgb: 79, 70, 229;
-            --secondary-light: #06b6d4;
-            --secondary-dark: #0f172a;
-            --text-light: #1e293b; --text-dark: #f8fafc;
-            --card-light: rgba(255, 255, 255, 0.15);
-            --card-dark: rgba(30, 41, 59, 0.4);
-            --border-light: rgba(255, 255, 255, 0.3); 
-            --border-dark: rgba(255, 255, 255, 0.2);
-            --bg-light: #f8fafc; --bg-dark: #1e293b;
-            --glass-blur: blur(12px);
-            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
-        }
-        
-        [data-theme="light"] { 
-            --primary: var(--primary-light); 
-            --primary-rgb: var(--primary-light-rgb); 
-            --secondary: var(--secondary-light); 
-            --bg-color: var(--bg-light); 
-            --text-color: var(--text-light); 
-            --card-bg: var(--card-light); 
-            --border-color: var(--border-light); 
-            --header-bg: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(6, 182, 212, 0.8));
-            --footer-bg: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(6, 182, 212, 0.8));
-        }
-        
-        [data-theme="dark"] { 
-            --primary: var(--primary-dark); 
-            --primary-rgb: var(--primary-dark-rgb); 
-            --secondary: var(--secondary-dark); 
-            --bg-color: var(--bg-dark); 
-            --text-color: var(--text-dark); 
-            --card-bg: var(--card-dark); 
-            --border-color: var(--border-dark); 
-            --header-bg: linear-gradient(135deg, rgba(79, 70, 229, 0.8), rgba(15, 23, 42, 0.8));
-            --footer-bg: linear-gradient(135deg, rgba(79, 70, 229, 0.8), rgba(15, 23, 42, 0.8));
-        }
-        
-        body {
-            font-family: 'Vazirmatn', sans-serif;
-            background: var(--bg-color);
-            color: var(--text-color);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            transition: background-color 0.3s ease, color 0.3s ease;
-            overflow-x: hidden;
-            position: relative;
-        }
-        
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            z-index: -1;
-            opacity: 0.7;
-        }
-        
-        [data-theme="dark"] body::before {
-            opacity: 0.5;
-        }
-
-        .header {
-            background: var(--header-bg);
-            color: white;
-            padding: 1rem 0;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .header-content {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 0 1rem;
-            max-width: 1200px;
-            margin: 0 auto;
-            position: relative;
-        }
-        
-        .header-content h2 {
-            margin-bottom: 0;
-            font-weight: 700;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        .theme-toggle {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: white;
-            transition: all 0.3s ease;
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-        }
-        
-        .theme-toggle:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-50%) scale(1.05);
-        }
-        
-        .main-container {
-            flex: 1;
-            padding: 1.5rem;
-            /* max-width: 1200px; */
-            margin: 0 auto;
-            width: 100%;
-        }
-        
-        .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--glass-shadow);
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-        
-        .glass-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.3);
-        }
-        
-        .accordion-button {
-            background: var(--card-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            font-weight: 600;
-        }
-        
-        .accordion-button:not(.collapsed) {
-            background: linear-gradient(135deg, var(--secondary), var(--primary));
-            color: white;
-            box-shadow: none;
-        }
-        
-        .accordion-button:focus {
-            box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
-            border-color: var(--primary);
-        }
-        
-        .config-box, .sub-box {
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
-            margin-bottom: 0.75rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-        
-        .config-box:hover, .sub-box:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-        }
-        
-        .config-box .config-content, .sub-box .config-content {
-            direction: ltr;
-            white-space: nowrap;
-            overflow-x: auto;
-            flex-grow: 1;
-            margin-right: 1rem;
-            font-family: 'Courier New', monospace;
-            padding: 0.25rem 0.5rem;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        [data-theme="light"] .config-box .config-content, [data-theme="light"] .sub-box .config-content {
-            color: #212529;
-        }
-        
-        [data-theme="dark"] .config-box .config-content, [data-theme="dark"] .sub-box .config-content {
-            color: #f8f9fa;
-        }
-        
-        [data-theme="light"] #manual-configs-list .config-box .config-content {
-            color: #00008B;
-        }
-        
-        [data-theme="dark"] #manual-configs-list .config-box .config-content {
-            color: #FFD700;
-        }
-        
-        [data-theme="light"] #manual-configs-list .config-box .config-content code {
-            color: #00008B;
-        }
-        
-        [data-theme="dark"] #manual-configs-list .config-box .config-content code {
-            color: #FFD700;
-        }
-        
-        .config-name {
-            font-family: 'Vazirmatn', sans-serif;
-            font-weight: 500;
-            font-size: 0.95rem;
-        }
-        
-        .protocol-badge {
-            font-size: 0.7rem;
-            font-weight: bold;
-            padding: .2em .6em .3em;
-            border-radius: .25rem;
-            margin-right: 8px;
-            color: #fff;
-        }
-        
-        .badge-vless { background-color: #0d6efd; } 
-        .badge-vmess { background-color: #198754; } 
-        .badge-ss { background-color: #6f42c1; } 
-        .badge-trojan { background-color: #dc3545; } 
-        .badge-other { background-color: #6c757d; }
-        
-        .btn-copy-all {
-            width: 100%;
-            padding: 0.75rem;
-            font-size: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
-            background: rgba(var(--primary-rgb), 0.8);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            font-weight: 600;
-        }
-        
-        .btn-copy-all:hover {
-            background: rgba(var(--primary-rgb), 1);
-            transform: translateY(-2px);
-        }
-        
-        .sub-config { 
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.7) 0%, rgba(129, 199, 132, 0.7) 100%);
-        }
-        
-        .sub-config:nth-child(2n) { 
-            background: linear-gradient(135deg, rgba(33, 150, 243, 0.7) 0%, rgba(100, 181, 246, 0.7) 100%);
-        }
-        
-        .sub-config:nth-child(3n) { 
-            background: linear-gradient(135deg, rgba(244, 67, 54, 0.7) 0%, rgba(229, 115, 115, 0.7) 100%);
-        }
-        
-        .sub-config:nth-child(4n) { 
-            background: linear-gradient(135deg, rgba(255, 152, 0, 0.7) 0%, rgba(255, 183, 77, 0.7) 100%);
-        }
-        
-        [data-theme="dark"] #sub-results-list .config-box .config-content { 
-            color: #FFD700; 
-        }
-        
-        [data-theme="light"] #sub-results-list .config-box .config-content { 
-            color: #00008B; 
-        }
-        
-        .ltr-input { 
-            direction: ltr; 
-            text-align: left; 
-        }
-        
-        .rtl-input { 
-            direction: rtl; 
-            text-align: right; 
-        }
-        
-        .footer {
-            background: var(--footer-bg);
-            color: white;
-            padding: 1.5rem;
-            text-align: center;
-            margin-top: auto;
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border-top: 1px solid var(--border-color);
-        }
-        
-        .footer a {
-            color: white;
-            margin: 0 0.5rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        .footer a:hover {
-            color: #e2e8f0;
-            text-decoration: underline;
-        }
-        
-        .form-control, .form-select {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            transition: all 0.3s ease;
-        }
-        
-        .form-control:focus, .form-select:focus {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: var(--primary);
-            box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
-            color: var(--text-color);
-        }
-        
-        /* اصلاح رنگ placeholder برای مود تاریک */
-        [data-theme="dark"] .form-control::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-        }
-        
-        [data-theme="light"] .form-control::placeholder {
-            color: rgba(0, 0, 0, 0.6);
-        }
-        
-        .btn {
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-        }
-        
-        .btn-primary {
-            background: rgba(var(--primary-rgb), 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .btn-primary:hover {
-            background: rgba(var(--primary-rgb), 1);
-            transform: translateY(-2px);
-        }
-        
-        .btn-success {
-            background: rgba(25, 135, 84, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .btn-success:hover {
-            background: rgba(25, 135, 84, 1);
-            transform: translateY(-2px);
-        }
-        
-        .btn-danger {
-            background: rgba(220, 53, 69, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .btn-danger:hover {
-            background: rgba(220, 53, 69, 1);
-            transform: translateY(-2px);
-        }
-        
-        .btn-warning {
-            background: rgba(255, 193, 7, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #212529;
-        }
-        
-        .btn-warning:hover {
-            background: rgba(255, 193, 7, 1);
-            transform: translateY(-2px);
-            color: #212529;
-        }
-        
-        .btn-info {
-            background: rgba(13, 202, 240, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #000;
-        }
-        
-        .btn-info:hover {
-            background: rgba(13, 202, 240, 1);
-            transform: translateY(-2px);
-            color: #000;
-        }
-        
-        .alert {
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .card-title {
-            font-weight: 700;
-            color: var(--text-color);
-        }
-        
-        /* دکمه‌ها به سمت راست */
-        .config-box .btn-group {
-            order: -1;
-            margin-left: 1rem;
-        }
-        
-        .sub-box .btn {
-            order: -1;
-            margin-left: 1rem;
-        }
-        
-        /* تنظیمات برای بخش بررسی سابسکریپشن - دکمه سمت راست */
-        #checkSubForm .input-group {
-            flex-direction: row-reverse;
-        }
-        
-        #checkSubForm .input-group .btn {
-            border-radius: 0 6px 6px 0;
-            border-left: 1px solid var(--border-color);
-            border-right: none;
-        }
-        
-        #checkSubForm .input-group .form-control {
-            border-radius: 6px 0 0 6px;
-            border-right: 1px solid var(--border-color);
-            border-left: none;
-        }
-        
-        /* تنظیمات برای بخش کاربران SSH - دکمه سمت راست */
-        #addSshUserForm .input-group {
-            flex-direction: row-reverse;
-        }
-        
-        #addSshUserForm .input-group .btn {
-            border-radius: 0 6px 6px 0;
-            border-left: 1px solid var(--border-color);
-            border-right: none;
-        }
-        
-        #addSshUserForm .input-group .form-control {
-            border-radius: 6px 0 0 6px;
-            border-right: 1px solid var(--border-color);
-            border-left: none;
-        }
-        
-        /* تنظیمات برای مجموعه جانبی - دکمه سمت راست */
-        #sideLinksForm .input-group {
-            flex-direction: row-reverse;
-        }
-        
-        #sideLinksForm .input-group .btn {
-            border-radius: 0 6px 6px 0;
-            border-left: 1px solid var(--border-color);
-            border-right: none;
-        }
-        
-        #sideLinksForm .input-group .form-control {
-            border-radius: 6px 0 0 6px;
-            border-right: 1px solid var(--border-color);
-            border-left: none;
-        }
-        
-        /* اصلاح رنگ فونت‌ها در مود تاریک */
-        [data-theme="dark"] .form-label,
-        [data-theme="dark"] .card-title,
-        [data-theme="dark"] .config-name,
-        [data-theme="dark"] .form-check-label {
-            color: #f8f9fa;
-        }
-        
-        /* بهبود رنگ فونت‌های لینک‌ها در بخش بررسی سابسکریپشن - همرنگ با تگ‌ها */
-        .sub-config .config-content {
-            color: inherit !important;
-        }
-        
-        /* بخش نتیجه در بررسی سابسکریپشن در مود تاریک */
-        [data-theme="dark"] #check_result h5,
-        [data-theme="dark"] #check_result .form-check-label {
-            color: #f8f9fa;
-        }
-        
-        [data-theme="light"] #check_result h5,
-        [data-theme="light"] #check_result .form-check-label {
-            color: #1e293b;
-        }
-        
-        /* رنگ فونت رمز عبور در بخش کاربران SSH */
-        #ssh-users-list .config-content {
-            color: #1e293b !important;
-            font-weight: 500;
-        }
-        
-        [data-theme="dark"] #ssh-users-list .config-content {
-            color: #f8f9fa !important;
-        }
-        
-        /* چپ چین کردن placeholder ها */
-        #new_ssh_username::placeholder,
-        #sideLinksForm input::placeholder,
-        #sub_url::placeholder {
-            text-align: left;
-            direction: ltr;
-        }
-        
-        #new_config::placeholder {
-            text-align: right;
-            direction: rtl;
-        }
-        
-        /* بزرگتر کردن دکمه‌های کپی/حذف و کاهش گردی */
-        #manual-configs-list .btn-group .btn {
-            padding: 0.5rem 0.75rem;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        
-        #ssh-users-list .btn-group .btn {
-            padding: 0.5rem 0.75rem;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .header-content h2 {
-                font-size: 1.3rem;
-            }
-            
-            .theme-toggle {
-                width: 40px;
-                height: 40px;
-            }
-            
-            .main-container {
-                padding: 1rem;
-            }
-            
-            .glass-card {
-                border-radius: 12px;
-            }
-        }
+        body { font-family: Vazirmatn, sans-serif; }
+        [data-theme="dark"] { background: #1e1e2d; color: #f8fafc; }
+        [data-theme="light"] { background: #f5f5f5; color: #1e293b; }
+        .tab-active { border-bottom: 3px solid #2196f3; color: #2196f3; }
+        .glass { backdrop-filter: blur(12px); background: rgba(255,255,255,0.8); }
+        [data-theme="dark"] .glass { background: rgba(30,30,45,0.8); }
     </style>
 </head>
 <body>
-    <header class="header">
-        <div class="header-content">
-            <h2><i class="fas fa-rocket me-2"></i> Ay Custom Sub</h2>
-            <button class="theme-toggle"><i class="fas fa-moon"></i></button>
+    <!-- Header -->
+    <header class="glass border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i class="fas fa-rocket text-primary"></i> Ay Custom Sub
+            </h1>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleTheme()" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> خروج
+                </a>
+            </div>
         </div>
     </header>
 
-    <div class="main-container container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                  {{ message }} <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <div class="accordion mb-4" id="settingsAccordion">
-          <div class="accordion-item glass-card">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#settingsCollapse">
-                <i class="fas fa-cog me-2"></i> تنظیمات سیستم
-              </button>
-            </h2>
-            <div id="settingsCollapse" class="accordion-collapse collapse" data-bs-parent="#settingsAccordion">
-              <div class="accordion-body">
-                <form method="POST" class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">نام کاربری</label>
-                        <input type="text" name="username" class="form-control ltr-input" value="{{ settings.username }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">رمز عبور</label>
-                        <input type="password" name="password" class="form-control ltr-input" value="{{ settings.password }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">پورت وب</label>
-                        <input type="number" name="web_port" class="form-control ltr-input" value="{{ settings.web_port }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">پورت اصلی</label>
-                        <input type="number" name="main_port" class="form-control ltr-input" value="{{ settings.main_port }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">پورت‌های جانبی (,)</label>
-                        <input type="text" name="extra_ports" class="form-control ltr-input" value="{{ settings.extra_ports | join(',') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">دامنه</label>
-                        <input type="text" name="domain" class="form-control ltr-input" value="{{ settings.domain }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">مسیر ساب</label>
-                        <input type="text" name="sub_path" class="form-control ltr-input" value="{{ settings.sub_path }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">مسیر گواهی</label>
-                        <input type="text" name="cert_path" class="form-control ltr-input" value="{{ settings.cert_path }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">مسیر کلید</label>
-                        <input type="text" name="key_path" class="form-control ltr-input" value="{{ settings.key_path }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">پیام انقضا</label>
-                        <textarea name="expired_message" class="form-control" rows="2">{{ settings.expired_message }}</textarea>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">پیام ناموجود</label>
-                        <textarea name="no_sub_message" class="form-control" rows="2">{{ settings.no_sub_message }}</textarea>
-                    </div>
-                    <div class="col-12 d-flex flex-wrap align-items-center">
-                        <button type="submit" class="btn btn-primary me-2 mb-2"><i class="fas fa-save"></i> ذخیره</button>
-                        <button class="btn btn-warning me-2 mb-2" type="button" onclick="restartServices()"><i class="fas fa-sync-alt"></i> ریستارت</button>
-                        <button class="btn btn-info me-2 mb-2" type="button" onclick="syncExpiryDates()"><i class="fas fa-calendar-check"></i> همسان سازی تاریخ</button>
-                        <a href="{{ url_for('logout') }}" class="btn btn-danger mb-2"><i class="fas fa-sign-out-alt"></i> خروج</a>
-                    </div>
-                </form>
-              </div>
-            </div>
-          </div>
+    <!-- Tabs -->
+    <nav class="max-w-7xl mx-auto px-4 mt-4">
+        <div class="flex gap-1 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-700" id="tabNav">
+            <button class="tab-btn tab-active px-4 py-2 text-sm font-medium" data-tab="overview">
+                <i class="fas fa-chart-pie"></i> Overview
+            </button>
+            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="manual">
+                <i class="fas fa-list"></i> Manual Configs
+            </button>
+            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="ssh">
+                <i class="fas fa-users"></i> SSH Users
+            </button>
+            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="side">
+                <i class="fas fa-link"></i> Side Collections
+            </button>
+            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="sync">
+                <i class="fas fa-sync"></i> Client Sync
+            </button>
+            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="logs">
+                <i class="fas fa-file-alt"></i> Live Logs
+            </button>
+            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="expiry">
+                <i class="fas fa-calendar-check"></i> Sync Expiry
+            </button>
+            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="settings">
+                <i class="fas fa-cog"></i> Settings
+            </button>
         </div>
+    </nav>
 
-        <div class="card mb-4 glass-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="card-title mb-0"><i class="fas fa-list"></i> کانفیگ‌های دستی</h4>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="manualConfigToggle" checked>
-                        <label class="form-check-label" for="manualConfigToggle">نام/کانفیگ</label>
+    <!-- Tab Contents -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Overview Tab -->
+        <div id="tab-overview" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass rounded-xl p-6 shadow-lg">
+                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-link text-primary"></i> Ay_Custom_Configs</h3>
+                    <div class="flex gap-2">
+                        <input type="text" value="{{ custom_configs_url }}" readonly
+                               class="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" dir="ltr">
+                        <button onclick="copyText('{{ custom_configs_url }}')" class="btn btn-primary">
+                            <i class="fas fa-copy"></i>
+                        </button>
                     </div>
                 </div>
-                <form id="addConfigForm">
-                    <div class="mb-3">
-                        <textarea id="new_config" name="new_config" rows="3" class="form-control" placeholder="هر کانفیگ را در خط جداگانه وارد کنید"></textarea>
+                <div class="glass rounded-xl p-6 shadow-lg">
+                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-info-circle text-primary"></i> Quick Stats</h3>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <div class="text-2xl font-bold text-primary">{{ custom_configs|length }}</div>
+                            <div class="text-sm text-gray-500">Manual Configs</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-primary">{{ ssh_users|length }}</div>
+                            <div class="text-sm text-gray-500">SSH Users</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-primary">{{ side_collections|length }}</div>
+                            <div class="text-sm text-gray-500">Collections</div>
+                        </div>
                     </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <button class="btn btn-success w-100" type="submit"><i class="fas fa-plus-circle"></i> افزودن</button>
-                        </div>
-                        <div class="col-6">
-                            <button id="delete-all-configs-btn" class="btn btn-danger w-100" type="button"><i class="fas fa-trash-alt"></i> حذف همه</button>
-                        </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Configs Tab -->
+        <div id="tab-manual" class="tab-content hidden">
+            <div class="glass rounded-xl p-6 shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg"><i class="fas fa-list text-primary"></i> کانفیگ‌های دستی</h3>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm">نمایش</label>
+                        <select id="manualViewMode" class="px-2 py-1 rounded border text-sm">
+                            <option value="name">نام</option>
+                            <option value="config">کانفیگ</option>
+                        </select>
                     </div>
-                </form>
-                <div class="mt-3" id="manual-configs-list">
-                    {% for config in custom_configs %}
-                    <div class="config-box" data-full-config="{{ config | e }}">
-                        <span class="config-content"></span>
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-success" onclick="copyToClipboard('{{ config | e }}')"><i class="fas fa-copy"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteConfig({{ loop.index0 }})"><i class="fas fa-trash"></i></button>
-                        </div>
+                </div>
+                <textarea id="newManualConfigs" rows="3"
+                          class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 mb-3"
+                          placeholder="هر کانفیگ در یک خط..."></textarea>
+                <div class="flex gap-2 mb-4">
+                    <button onclick="addManualConfigs()" class="btn btn-success flex-1">
+                        <i class="fas fa-plus"></i> افزودن
+                    </button>
+                    <button onclick="deleteAllManualConfigs()" class="btn btn-danger flex-1">
+                        <i class="fas fa-trash-alt"></i> حذف همه
+                    </button>
+                </div>
+                <div id="manualList" class="space-y-2">
+                    {% for cfg in custom_configs %}
+                    <div class="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800" data-index="{{ loop.index0 }}">
+                        <span class="flex-1 text-sm font-mono truncate" dir="ltr">{{ cfg }}</span>
+                        <button onclick="copyText('{{ cfg|e }}')" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button onclick="deleteManualConfig({{ loop.index0 }})" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
-        
-        <div class="card mb-4 glass-card">
-            <div class="card-body">
-                <h4 class="card-title"><i class="fas fa-users-cog"></i> کاربران SSH</h4>
-                <form id="addSshUserForm">
-                    <div class="input-group mb-3">
-                        <input type="text" id="new_ssh_username" class="form-control" placeholder="نام کاربری جدید" required>
-                        <button class="btn btn-success" type="submit"><i class="fas fa-user-plus"></i> افزودن</button>
-                    </div>
-                </form>
-                <div id="ssh-users-list" class="mt-3">
+
+        <!-- SSH Users Tab -->
+        <div id="tab-ssh" class="tab-content hidden">
+            <div class="glass rounded-xl p-6 shadow-lg">
+                <h3 class="font-bold text-lg mb-4"><i class="fas fa-users text-primary"></i> کاربران SSH</h3>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="newSshUsername" placeholder="نام کاربری جدید"
+                           class="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800" dir="ltr">
+                    <button onclick="addSshUser()" class="btn btn-success">
+                        <i class="fas fa-user-plus"></i> افزودن
+                    </button>
+                </div>
+                <div id="sshList" class="space-y-2">
                     {% for user in ssh_users %}
-                    <div class="config-box" id="ssh-user-{{ user }}">
-                        <span class="config-content" style="font-family: 'Vazirmatn', sans-serif; background: transparent;">{{ user }}</span>
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-info" onclick="showPassword('{{ user }}')"><i class="fas fa-eye"></i></button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="changePassword('{{ user }}')"><i class="fas fa-key"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteSshUser('{{ user }}')"><i class="fas fa-user-times"></i></button>
-                        </div>
+                    <div class="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                        <i class="fas fa-user text-primary"></i>
+                        <span class="flex-1 font-medium">{{ user }}</span>
+                        <button onclick="showSshPassword('{{ user }}')" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="changeSshPassword('{{ user }}')" class="btn btn-sm btn-outline-warning">
+                            <i class="fas fa-key"></i>
+                        </button>
+                        <button onclick="deleteSshUser('{{ user }}')" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-user-times"></i>
+                        </button>
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
 
-        <div class="card mb-4 glass-card">
-            <div class="card-body">
-                <h4 class="card-title"><i class="fas fa-link"></i> مجموعه جانبی</h4>
-                <form id="sideLinksForm">
-                    <div id="side-links-container" class="mb-2">
-                        {% for link in settings.side_collection_urls %}
-                        <div class="input-group mb-2">
-                            <input type="url" name="side_collection_urls" class="form-control rtl-input" value="{{ link }}" placeholder="لینک مجموعه جانبی">
-                            <button class="btn btn-outline-danger remove-link-btn" type="button"><i class="fas fa-minus"></i></button>
+        <!-- Side Collections Tab -->
+        <div id="tab-side" class="tab-content hidden">
+            <div class="glass rounded-xl p-6 shadow-lg">
+                <h3 class="font-bold text-lg mb-4"><i class="fas fa-link text-primary"></i> مجموعه‌های جانبی</h3>
+                <div id="sideCollectionsList" class="space-y-4">
+                    {% for coll in side_collections %}
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4" data-index="{{ loop.index0 }}">
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" value="{{ coll.url }}" placeholder="URL" dir="ltr"
+                                   class="flex-1 px-3 py-1 rounded border text-sm side-url">
+                            <button onclick="removeSideCollection({{ loop.index0 }})" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-minus"></i>
+                            </button>
                         </div>
-                        {% endfor %}
+                        <div class="flex gap-2">
+                            <input type="text" value="{{ coll.global_rename }}" placeholder="Global Rename (e.g. [Ay] {index})" dir="ltr"
+                                   class="flex-1 px-3 py-1 rounded border text-sm side-rename">
+                        </div>
                     </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <button id="add-link-btn" class="btn btn-success w-100 py-2" type="button"><i class="fas fa-plus"></i> افزودن لینک</button>
+                    {% endfor %}
+                </div>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="addSideCollection()" class="btn btn-success flex-1">
+                        <i class="fas fa-plus"></i> افزودن مجموعه
+                    </button>
+                    <button onclick="saveSideCollections()" class="btn btn-primary flex-1">
+                        <i class="fas fa-save"></i> ذخیره
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Client Sync Tab -->
+        <div id="tab-sync" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass rounded-xl p-6 shadow-lg">
+                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-sync text-primary"></i> Client Synchronization</h3>
+                    <div id="syncStatus" class="mb-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                            <span id="syncStatusText">بررسی وضعیت...</span>
                         </div>
-                        <div class="col-6">
-                            <button class="btn btn-primary w-100 py-2" type="submit"><i class="fas fa-save"></i> ذخیره لینک‌ها</button>
-                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <label class="text-sm">مدت زمان (دقیقه):</label>
+                        <input type="number" id="syncDuration" value="5" min="1"
+                               class="w-24 px-2 py-1 rounded border text-sm">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="enableClientSync()" class="btn btn-success flex-1">
+                            <i class="fas fa-play"></i> Enable
+                        </button>
+                        <button onclick="disableClientSync()" class="btn btn-danger flex-1">
+                            <i class="fas fa-stop"></i> Disable
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-6 shadow-lg">
+                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-server text-primary"></i> Service Restarter</h3>
+                    <div id="servicesStatus" class="space-y-2">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Logs Tab -->
+        <div id="tab-logs" class="tab-content hidden">
+            <div class="glass rounded-xl p-6 shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg"><i class="fas fa-file-alt text-primary"></i> Live Logs</h3>
+                    <div class="flex gap-2">
+                        <select id="logService" class="px-2 py-1 rounded border text-sm" onchange="refreshLogs()">
+                            <option value="ay-custom-sub">ay-custom-sub</option>
+                            <option value="ay-custom-web">ay-custom-web</option>
+                            <option value="x-ui">x-ui</option>
+                            <option value="ay-sync-clients">ay-sync-clients</option>
+                        </select>
+                        <button onclick="downloadLog()" class="btn btn-sm btn-primary">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <pre id="logContent" class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs font-mono h-96 overflow-auto" dir="ltr">Loading...</pre>
+            </div>
+        </div>
+
+        <!-- Sync Expiry Tab -->
+        <div id="tab-expiry" class="tab-content hidden">
+            <div class="glass rounded-xl p-6 shadow-lg max-w-lg mx-auto text-center">
+                <h3 class="font-bold text-lg mb-4"><i class="fas fa-calendar-check text-primary"></i> همسان‌سازی تاریخ انقضاء</h3>
+                <p class="text-sm text-gray-500 mb-6">
+                    این عمل تاریخ انقضای کاربران زیرمجموعه را با کاربر اصلی یکسان می‌کند.
+                </p>
+                <button onclick="syncExpiryDates()" class="btn btn-primary w-full">
+                    <i class="fas fa-play"></i> اجرای همسان‌سازی
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="tab-settings" class="tab-content hidden">
+            <div class="glass rounded-xl p-6 shadow-lg">
+                <h3 class="font-bold text-lg mb-4"><i class="fas fa-cog text-primary"></i> تنظیمات</h3>
+                <form id="settingsForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm mb-1">نام کاربری</label>
+                        <input type="text" name="username" value="{{ settings.username }}" class="w-full px-3 py-2 rounded border" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">رمز عبور</label>
+                        <input type="password" name="password" value="{{ settings.password }}" class="w-full px-3 py-2 rounded border" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">پورت وب</label>
+                        <input type="number" name="web_port" value="{{ settings.web_port }}" class="w-full px-3 py-2 rounded border" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">پورت اصلی</label>
+                        <input type="number" name="main_port" value="{{ settings.main_port }}" class="w-full px-3 py-2 rounded border" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">پورت‌های جانبی (,)</label>
+                        <input type="text" name="extra_ports" value="{{ settings.extra_ports|join(',') }}" class="w-full px-3 py-2 rounded border" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">دامنه</label>
+                        <input type="text" name="domain" value="{{ settings.domain }}" class="w-full px-3 py-2 rounded border" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">مسیر ساب</label>
+                        <input type="text" name="sub_path" value="{{ settings.sub_path }}" class="w-full px-3 py-2 rounded border" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">مسیر گواهی</label>
+                        <input type="text" name="cert_path" value="{{ settings.cert_path }}" class="w-full px-3 py-2 rounded border" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">مسیر کلید</label>
+                        <input type="text" name="key_path" value="{{ settings.key_path }}" class="w-full px-3 py-2 rounded border" dir="ltr">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">پیام انقضا</label>
+                        <textarea name="expired_message" rows="2" class="w-full px-3 py-2 rounded border">{{ settings.expired_message }}</textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">پیام ناموجود</label>
+                        <textarea name="no_sub_message" rows="2" class="w-full px-3 py-2 rounded border">{{ settings.no_sub_message }}</textarea>
+                    </div>
+                    <div class="md:col-span-2 flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-1">
+                            <i class="fas fa-save"></i> ذخیره
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
+    </main>
 
-        <div class="card glass-card">
-            <div class="card-body">
-                <h4 class="card-title"><i class="fas fa-search"></i> بررسی سابسکریپشن</h4>
-                <form id="checkSubForm">
-                    <div class="input-group mb-3">
-                        <input type="text" id="sub_url" name="sub_url" class="form-control rtl-input" placeholder="آدرس لینک سابسکریپشن">
-                        <button class="btn btn-info" type="submit"><i class="fas fa-check"></i> بررسی</button>
-                    </div>
-                </form>
-                <div id="check_result"></div>
-            </div>
-        </div>
-    </div>
-
-    <footer class="footer">
-        <div>🌙<a href="https://github.com/shammay-PC/Ay-v2Ray-Subscription" target="_blank">v 3.0.0</a>⚡
-        <div>توسعه داده شده توسط<a href="https://shammay.ir" target="_blank">shammay</a>
-            <div class="mt-2">
-                <a href="https://t.me/shammay" target="_blank"><i class="fab fa-telegram"></i> تلگرام</a> |
-                <a href="https://facebook.com/shammayPC" target="_blank"><i class="fab fa-facebook"></i> فیسبوک</a> |
-                <a href="https://github.com/shammay-PC" target="_blank"><i class="fab fa-github"></i> گیت‌هاب</a>
-            </div>
-            <div class="mt-2">تمامی حقوق برای<a href="https://shammay.ir" target="_blank">Ay Technic</a>محفوظ است</div>
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const $ = (selector) => document.querySelector(selector);
-        const $$ = (selector) => document.querySelectorAll(selector);
-
-        function copyToClipboard(text) { 
-            navigator.clipboard.writeText(text).then(() => 
-                Swal.fire({ 
-                    position: 'center', 
-                    icon: 'success', 
-                    title: 'کپی شد!', 
-                    showConfirmButton: false, 
-                    timer: 1000 
-                })
-            ).catch(() => 
-                Swal.fire('خطا', 'مشکلی در کپی کردن رخ داد.', 'error')
-            ); 
-        }
-        
-        function parseConfig(configStr) { 
-            let protocol = 'OTHER', name = 'نامشخص', badgeClass = 'badge-other'; 
-            if (configStr.startsWith('vless://')) { 
-                protocol = 'VLESS'; 
-                badgeClass = 'badge-vless'; 
-            } else if (configStr.startsWith('vmess://')) { 
-                protocol = 'VMESS'; 
-                badgeClass = 'badge-vmess'; 
-            } else if (configStr.startsWith('ss://')) { 
-                protocol = 'SS'; 
-                badgeClass = 'badge-ss'; 
-            } else if (configStr.startsWith('trojan://')) { 
-                protocol = 'TROJAN'; 
-                badgeClass = 'badge-trojan'; 
-            } 
-            try { 
-                const namePart = configStr.split('#')[1]; 
-                if (namePart) name = decodeURIComponent(namePart).trim(); 
-            } catch (e) {} 
-            return { protocol, name, badgeClass }; 
-        }
-        
-        function updateConfigDisplay(containerSelector, showName) { 
-            $$(containerSelector).forEach(box => { 
-                const fullConfig = box.dataset.fullConfig; 
-                const contentSpan = box.querySelector('.config-content'); 
-                if (showName) { 
-                    const { protocol, name, badgeClass } = parseConfig(fullConfig); 
-                    contentSpan.innerHTML = `<span class="protocol-badge ${badgeClass}">${protocol}</span> <span class="config-name">${name}</span>`; 
-                } else { 
-                    contentSpan.innerHTML = `<code style="direction: ltr; white-space: nowrap; overflow-x: auto; flex-grow: 1;">${fullConfig}</code>`; 
-                } 
-            }); 
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTheme();
-            $('.theme-toggle').addEventListener('click', toggleTheme);
-            $('#addConfigForm').addEventListener('submit', addConfig);
-            $('#delete-all-configs-btn').addEventListener('click', deleteAllConfigs);
-            $('#checkSubForm').addEventListener('submit', checkSub);
-            $('#addSshUserForm').addEventListener('submit', addSshUser);
-            $('#sideLinksForm').addEventListener('submit', saveSideLinks);
-            $('#add-link-btn').addEventListener('click', addSideLinkInput);
-            $('#side-links-container').addEventListener('click', function(e) { 
-                if (e.target.closest('.remove-link-btn')) { 
-                    e.target.closest('.input-group').remove(); 
-                } 
+        // --- Tab 切换 ---
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                btn.classList.add('tab-active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+                if (btn.dataset.tab === 'logs') refreshLogs();
+                if (btn.dataset.tab === 'sync') loadServicesStatus();
             });
-            $('#manualConfigToggle').addEventListener('change', (e) => updateConfigDisplay('#manual-configs-list .config-box', e.target.checked));
-            updateConfigDisplay('#manual-configs-list .config-box', true);
         });
 
-        function toggleTheme() { 
-            const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; 
-            document.documentElement.setAttribute('data-theme', newTheme); 
-            localStorage.setItem('theme', newTheme); 
-            updateThemeIcon(newTheme); 
+        // --- 主题 ---
+        function toggleTheme() {
+            const html = document.documentElement;
+            const newTheme = html.dataset.theme === 'light' ? 'dark' : 'light';
+            html.dataset.theme = newTheme;
+            localStorage.setItem('theme', newTheme);
+            document.getElementById('themeIcon').className =
+                newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         }
-        
-        function updateThemeIcon(theme) { 
-            $('.theme-toggle i').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; 
-        }
-        
-        function loadTheme() { 
-            const theme = localStorage.getItem('theme') || 'light'; 
-            document.documentElement.setAttribute('data-theme', theme); 
-            updateThemeIcon(theme); 
-        }
-        
-        function addConfig(event) { 
-            event.preventDefault(); 
-            const configs = $("#new_config").value.trim().split("\n"); 
-            const formData = new URLSearchParams(); 
-            configs.forEach(cfg => { 
-                if(cfg.trim()) formData.append("new_config", cfg) 
-            }); 
-            fetch('/add-config', { method: 'POST', body: formData }).then(() => location.reload()); 
-        }
-        
-        function deleteConfig(index) { 
-            Swal.fire({ 
-                title: 'آیا مطمئن هستید؟', 
-                text: "این کانفیگ حذف خواهد شد!", 
-                icon: 'warning', 
-                showCancelButton: true, 
-                confirmButtonColor: '#d33', 
-                confirmButtonText: 'بله، حذف کن!', 
-                cancelButtonText: 'لغو' 
-            }).then((result) => { 
-                if (result.isConfirmed) { 
-                    fetch('/delete-config', { 
-                        method: 'POST', 
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'}, 
-                        body: 'index=' + index 
-                    }).then(() => location.reload()); 
-                } 
-            }); 
-        }
-        
-        function deleteAllConfigs() { 
-            Swal.fire({ 
-                title: 'حذف تمام کانفیگ‌ها', 
-                text: "این عمل غیرقابل بازگشت است!", 
-                icon: 'error', 
-                showCancelButton: true, 
-                confirmButtonColor: '#d33', 
-                confirmButtonText: 'بله، همه را حذف کن!', 
-                cancelButtonText: 'لغو' 
-            }).then((result) => { 
-                if (result.isConfirmed) { 
-                    fetch('/delete-all-configs', { method: 'POST' })
-                        .then(res => res.json())
-                        .then(data => { 
-                            if(data.status === 'success') 
-                                Swal.fire('حذف شد!', data.message, 'success').then(() => location.reload()); 
-                            else 
-                                Swal.fire('خطا!', data.message, 'error'); 
-                        })
-                        .catch(() => Swal.fire('خطا!', 'ارتباط با سرور برقرار نشد.', 'error')); 
-                } 
-            }); 
-        }
-        
-        function addSideLinkInput() { 
-            const container = document.getElementById('side-links-container'); 
-            const newLinkInput = document.createElement('div'); 
-            newLinkInput.className = 'input-group mb-2'; 
-            newLinkInput.innerHTML = `<input type="url" name="side_collection_urls" class="form-control rtl-input" placeholder="لینک مجموعه جانبی جدید"><button class="btn btn-outline-danger remove-link-btn" type="button"><i class="fas fa-minus"></i></button>`; 
-            container.appendChild(newLinkInput); 
-        }
-        
-        function saveSideLinks(event) { 
-            event.preventDefault(); 
-            const formData = new FormData($('#sideLinksForm')); 
-            fetch('/save-side-links', { method: 'POST', body: formData })
-                .then(response => response.json())
-                .then(data => { 
-                    if (data.status === 'success') { 
-                        Swal.fire({ 
-                            icon: 'success', 
-                            title: 'موفق', 
-                            text: data.message, 
-                            timer: 2000, 
-                            showConfirmButton: false 
-                        }); 
-                    } else { 
-                        Swal.fire({ 
-                            icon: 'error', 
-                            title: 'خطا', 
-                            text: data.message 
-                        }); 
-                    } 
-                })
-                .catch(() => Swal.fire('خطا', 'مشکل در ارتباط با سرور', 'error')); 
-        }
+        (function() {
+            const t = localStorage.getItem('theme') || 'light';
+            document.documentElement.dataset.theme = t;
+            document.getElementById('themeIcon').className =
+                t === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        })();
 
-        function restartServices() { 
-            Swal.fire({ 
-                title: 'ریستارت سرویس‌ها', 
-                text: "آیا مطمئن هستید؟", 
-                icon: 'warning', 
-                showCancelButton: true, 
-                confirmButtonColor: '#3085d6', 
-                confirmButtonText: 'بله، ریستارت کن!', 
-                cancelButtonText: 'لغو' 
-            }).then((result) => { 
-                if (result.isConfirmed) { 
-                    Swal.fire({ 
-                        title: 'در حال ریستارت...', 
-                        text: 'لطفا چند لحظه صبر کنید.', 
-                        didOpen: () => Swal.showLoading() 
-                    }); 
-                    fetch('/restart-services', { method: 'POST' }).finally(() => { 
-                        setTimeout(() => location.reload(), 2000); 
-                    }); 
-                } 
-            }); 
-        }
-        
-        function syncExpiryDates() { 
-            Swal.fire({ 
-                title: 'همسان‌سازی تاریخ انقضاء', 
-                text: "این عمل تاریخ انقضای کاربران زیرمجموعه را با کاربر اصلی یکسان می‌کند.", 
-                icon: 'question', 
-                showCancelButton: true, 
-                confirmButtonText: 'بله، انجام بده!', 
-                cancelButtonText: 'لغو' 
-            }).then((result) => { 
-                if (result.isConfirmed) { 
-                    fetch('/sync-expiry-dates', { method: 'POST' })
-                        .then(res => res.json())
-                        .then(data => { 
-                            if (data.status === 'success') 
-                                Swal.fire('موفق!', data.message, 'success'); 
-                            else 
-                                Swal.fire('خطا!', data.message, 'error'); 
-                        })
-                        .catch(() => Swal.fire('خطا!', 'ارتباط با سرور برقرار نشد.', 'error')); 
-                } 
-            }); 
-        }
-        
-        function addSshUser(event) { 
-            event.preventDefault(); 
-            const username = $("#new_ssh_username").value.trim(); 
-            const formData = new URLSearchParams({ username }); 
-            fetch('/add-ssh-user', { method: 'POST', body: formData })
-                .then(res => res.json())
-                .then(data => { 
-                    if (data.status === 'success') { 
-                        Swal.fire({ 
-                            icon: 'success', 
-                            title: 'کاربر با موفقیت ساخته شد', 
-                            html: `نام کاربری: <b>${data.username}</b><br>رمز عبور: <b>${data.password}</b><br><small>(این رمز را کپی و ذخیره کنید)</small>`, 
-                        }).then(() => location.reload()); 
-                    } else 
-                        Swal.fire('خطا!', data.message, 'error'); 
-                })
-                .catch(() => Swal.fire('خطا!', 'ارتباط با سرور برقرار نشد.', 'error')); 
-        }
-        
-        function deleteSshUser(username) { 
-            Swal.fire({ 
-                title: `حذف کاربر ${username}`, 
-                text: "این عمل غیرقابل بازگشت است!", 
-                icon: 'warning', 
-                showCancelButton: true, 
-                confirmButtonColor: '#d33', 
-                confirmButtonText: 'بله، حذف کن!', 
-                cancelButtonText: 'لغو' 
-            }).then((result) => { 
-                if (result.isConfirmed) { 
-                    fetch('/delete-ssh-user', { 
-                        method: 'POST', 
-                        body: new URLSearchParams({ username }) 
-                    })
-                    .then(res => res.json())
-                    .then(data => { 
-                        if (data.status === 'success') { 
-                            $(`#ssh-user-${username}`).remove(); 
-                            Swal.fire('حذف شد!', data.message, 'success'); 
-                        } else 
-                            Swal.fire('خطا!', data.message, 'error'); 
-                    }); 
-                } 
-            }); 
-        }
-        
-        function showPassword(username) { 
-            fetch('/get-ssh-password', { 
-                method: 'POST', 
-                body: new URLSearchParams({ username }) 
-            })
-            .then(res => res.json())
-            .then(data => { 
-                if (data.status === 'success') { 
-                    Swal.fire({ 
-                        title: `رمز عبور: ${username}`, 
-                        html: `<input type="text" value="${data.password}" class="form-control text-center" readonly onclick="this.select()" style="color: #0f172a;">`, 
-                        icon: 'info', 
-                        confirmButtonText: 'کپی و بستن' 
-                    }).then((r) => r.isConfirmed && navigator.clipboard.writeText(data.password)); 
-                } else 
-                    Swal.fire('خطا!', data.message, 'error'); 
-            }); 
-        }
-        
-        async function changePassword(username) { 
-            const { value: password } = await Swal.fire({ 
-                title: `تغییر رمز عبور ${username}`, 
-                input: 'text', 
-                inputLabel: 'رمز عبور جدید را وارد کنید', 
-                inputPlaceholder: 'حداقل ۶ کاراکتر', 
-                showCancelButton: true, 
-                confirmButtonText: 'تغییر رمز', 
-                cancelButtonText: 'لغو', 
-                inputValidator: (v) => (!v || v.length < 6) ? 'رمز عبور باید حداقل ۶ کاراکتر باشد!' : null 
-            }); 
-            if (password) { 
-                fetch('/change-ssh-password', { 
-                    method: 'POST', 
-                    body: new URLSearchParams({ username, password }) 
-                })
-                .then(res => res.json())
-                .then(data => { 
-                    if (data.status === 'success') 
-                        Swal.fire('موفق!', data.message, 'success'); 
-                    else 
-                        Swal.fire('خطا!', data.message, 'error'); 
-                }); 
-            } 
-        }
-        
-        function checkSub(event) {
-            event.preventDefault();
-            const url = $("#sub_url").value;
-            if (!url.trim()) return Swal.fire('خطا!', 'لطفا آدرس سابسکریپشن را وارد کنید', 'error');
-            const resultDiv = $("#check_result");
-            resultDiv.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">در حال بررسی...</p></div>';
-            fetch('/check-sub', { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'}, 
-                body: 'sub_url=' + encodeURIComponent(url) 
-            })
-            .then(res => res.text())
-            .then(text => {
-                const configs = text.trim().split("\n").filter(line => line.trim());
-                if (configs.length === 0 || (configs.length > 0 && configs[0].startsWith('خطا'))) { 
-                    resultDiv.innerHTML = `<div class="alert alert-warning">${configs[0] || 'هیچ کانفیگی یافت نشد'}</div>`; 
-                    return; 
-                }
-                resultDiv.innerHTML = `
-                    <button class="btn btn-primary btn-copy-all" onclick="copyAllConfigs(this)">
-                        <i class="fas fa-copy"></i> کپی همه کانفیگ‌ها
-                    </button>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0">نتیجه (${configs.length} کانفیگ)</h5>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" id="subResultToggle" checked onchange="updateConfigDisplay('#sub-results-list .config-box', this.checked)">
-                            <label class="form-check-label" for="subResultToggle">نام/کانفیگ</label>
-                        </div>
-                    </div>
-                    <div id="sub-results-list"></div>
-                `;
-                const subListDiv = $('#sub-results-list');
-                const fullConfigsArray = [];
-                configs.forEach((cfg) => {
-                    fullConfigsArray.push(cfg);
-                    const box = document.createElement('div');
-                    box.className = 'config-box sub-config';
-                    box.dataset.fullConfig = cfg;
-                    box.innerHTML = `<span class="config-content"></span><button class="btn btn-sm btn-light" onclick="copyToClipboard('${cfg.replace(/'/g, "\\'")}')"><i class="fas fa-copy"></i></button>`;
-                    subListDiv.appendChild(box);
-                });
-                resultDiv.dataset.fullConfigs = JSON.stringify(fullConfigsArray);
-                updateConfigDisplay('#sub-results-list .config-box', true);
-            })
-            .catch(error => { 
-                resultDiv.innerHTML = `<div class="alert alert-danger">خطا: ${error.message}</div>`; 
+        // --- 工具 ---
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                Swal.fire({icon:'success', title:'کپی شد', timer:1000, showConfirmButton:false});
             });
         }
-        
-        function copyAllConfigs(button) { 
-            const resultDiv = button.parentElement; 
-            const configs = JSON.parse(resultDiv.dataset.fullConfigs || '[]'); 
-            if(configs.length > 0){ 
-                copyToClipboard(configs.join('\n')); 
-            } 
+
+        // --- 手工配置 ---
+        function addManualConfigs() {
+            const ta = document.getElementById('newManualConfigs');
+            const lines = ta.value.trim().split('\n').filter(l => l.trim());
+            if (!lines.length) return;
+            const fd = new URLSearchParams();
+            lines.forEach(l => fd.append('config', l.trim()));
+            fetch('/api/custom-configs', {method:'POST', body: fd})
+                .then(r => r.json())
+                .then(d => { if (d.status === 'success') location.reload(); });
         }
+
+        function deleteManualConfig(index) {
+            Swal.fire({
+                title: 'حذف کانفیگ؟', icon: 'warning',
+                showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'لغو'
+            }).then(r => {
+                if (r.isConfirmed) {
+                    fetch(`/api/custom-configs/${index}`, {method:'DELETE'})
+                        .then(() => location.reload());
+                }
+            });
+        }
+
+        function deleteAllManualConfigs() {
+            Swal.fire({
+                title: 'حذف همه؟', icon: 'error',
+                showCancelButton: true, confirmButtonText: 'بله', cancelButtonText: 'لغو'
+            }).then(r => {
+                if (r.isConfirmed) {
+                    fetch('/api/custom-configs/all', {method:'DELETE'})
+                        .then(() => location.reload());
+                }
+            });
+        }
+
+        // --- SSH 用户 ---
+        function addSshUser() {
+            const name = document.getElementById('newSshUsername').value.trim();
+            if (!name) return;
+            const fd = new URLSearchParams({username: name});
+            fetch('/api/ssh-users', {method:'POST', body: fd})
+                .then(r => r.json())
+                .then(d => {
+                    if (d.status === 'success') {
+                        Swal.fire({
+                            icon: 'success', title: 'کاربر ساخته شد',
+                            html: `نام: <b>${d.username}</b><br>رمز: <b>${d.password}</b>`,
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire('خطا', d.message, 'error');
+                    }
+                });
+        }
+
+        function deleteSshUser(user) {
+            Swal.fire({
+                title: `حذف ${user}?`, icon: 'warning',
+                showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'لغو'
+            }).then(r => {
+                if (r.isConfirmed) {
+                    fetch(`/api/ssh-users/${user}`, {method:'DELETE'})
+                        .then(() => location.reload());
+                }
+            });
+        }
+
+        function showSshPassword(user) {
+            fetch(`/api/ssh-users/${user}/password`)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.status === 'success') {
+                        Swal.fire({
+                            title: `رمز ${user}`,
+                            html: `<input class="w-full text-center px-3 py-2 border rounded" value="${d.password}" readonly onclick="this.select()">`,
+                            confirmButtonText: 'کپی و بستن'
+                        }).then(r => {
+                            if (r.isConfirmed) navigator.clipboard.writeText(d.password);
+                        });
+                    } else {
+                        Swal.fire('خطا', d.message, 'error');
+                    }
+                });
+        }
+
+        function changeSshPassword(user) {
+            Swal.fire({
+                title: `تغییر رمز ${user}`,
+                input: 'text', inputPlaceholder: 'رمز جدید (حداقل ۶ کاراکتر)',
+                showCancelButton: true, confirmButtonText: 'تغییر', cancelButtonText: 'لغو',
+                inputValidator: v => (!v || v.length < 6) ? 'حداقل ۶ کاراکتر' : null
+            }).then(r => {
+                if (r.value) {
+                    const fd = new URLSearchParams({password: r.value});
+                    fetch(`/api/ssh-users/${user}/password`, {method:'POST', body: fd})
+                        .then(res => res.json())
+                        .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
+                }
+            });
+        }
+
+        // --- 侧边集合 ---
+        function addSideCollection() {
+            const list = document.getElementById('sideCollectionsList');
+            const idx = list.children.length;
+            const div = document.createElement('div');
+            div.className = 'border border-gray-200 dark:border-gray-700 rounded-lg p-4';
+            div.dataset.index = idx;
+            div.innerHTML = `
+                <div class="flex gap-2 mb-2">
+                    <input type="text" placeholder="URL" dir="ltr" class="flex-1 px-3 py-1 rounded border text-sm side-url">
+                    <button onclick="this.closest('[data-index]').remove()" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Global Rename" dir="ltr" class="flex-1 px-3 py-1 rounded border text-sm side-rename">
+                </div>`;
+            list.appendChild(div);
+        }
+
+        function removeSideCollection(idx) {
+            document.querySelector(`#sideCollectionsList [data-index="${idx}"]`)?.remove();
+        }
+
+        function saveSideCollections() {
+            const collections = [];
+            document.querySelectorAll('#sideCollectionsList > div').forEach(div => {
+                const url = div.querySelector('.side-url')?.value.trim();
+                const rename = div.querySelector('.side-rename')?.value.trim() || '';
+                if (url) collections.push({url, global_rename: rename, configs: []});
+            });
+            fetch('/api/side-collections', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(collections)
+            }).then(r => r.json()).then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message || '', d.status === 'success' ? 'success' : 'error'));
+        }
+
+        // --- Client Sync ---
+        function enableClientSync() {
+            const dur = document.getElementById('syncDuration').value;
+            const fd = new URLSearchParams({duration: dur});
+            fetch('/api/sync-clients/enable', {method:'POST', body: fd})
+                .then(r => r.json())
+                .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
+        }
+
+        function disableClientSync() {
+            fetch('/api/sync-clients/disable', {method:'POST'})
+                .then(r => r.json())
+                .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
+        }
+
+        function loadServicesStatus() {
+            fetch('/api/services').then(r => r.json()).then(d => {
+                if (d.status !== 'success') return;
+                const container = document.getElementById('servicesStatus');
+                container.innerHTML = '';
+                for (const [name, st] of Object.entries(d.services)) {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-800';
+                    div.innerHTML = `
+                        <span class="text-sm font-medium" dir="ltr">${name}</span>
+                        <div class="flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full ${st.active ? 'bg-green-500' : 'bg-red-500'}"></span>
+                            <span class="text-xs">${st.active ? 'Active' : 'Inactive'}</span>
+                            <button onclick="svcAction('${name}','restart')" class="btn btn-sm btn-outline-primary" title="Restart">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            <button onclick="svcAction('${name}','stop')" class="btn btn-sm btn-outline-danger" title="Stop">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        </div>`;
+                    container.appendChild(div);
+                }
+            });
+        }
+
+        function svcAction(name, action) {
+            fetch(`/api/services/${name}/${action}`, {method:'POST'})
+                .then(r => r.json())
+                .then(d => {
+                    Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error');
+                    if (d.status === 'success') loadServicesStatus();
+                });
+        }
+
+        // --- Live Logs ---
+        let logInterval = null;
+        function refreshLogs() {
+            const svc = document.getElementById('logService').value;
+            fetch(`/api/services/${svc}/logs?lines=200`)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.status === 'success') {
+                        const pre = document.getElementById('logContent');
+                        pre.textContent = d.logs;
+                        pre.scrollTop = pre.scrollHeight;
+                    }
+                });
+        }
+
+        function downloadLog() {
+            const svc = document.getElementById('logService').value;
+            window.open(`/api/logs/${svc}/download`, '_blank');
+        }
+
+        // 启动日志轮询
+        setInterval(() => {
+            if (!document.getElementById('tab-logs').classList.contains('hidden')) {
+                refreshLogs();
+            }
+        }, 2000);
+
+        // --- Sync Expiry ---
+        function syncExpiryDates() {
+            Swal.fire({
+                title: 'همسان‌سازی تاریخ انقضاء', icon: 'question',
+                showCancelButton: true, confirmButtonText: 'بله', cancelButtonText: 'لغو'
+            }).then(r => {
+                if (r.isConfirmed) {
+                    fetch('/api/sync-expiry', {method:'POST'})
+                        .then(res => res.json())
+                        .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
+                }
+            });
+        }
+
+        // --- Settings ---
+        document.getElementById('settingsForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fd = new URLSearchParams(new FormData(this));
+            fetch('/api/config', {method:'POST', body: fd})
+                .then(r => r.json())
+                .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
+        });
+
+        // 初始加载服务状态
+        loadServicesStatus();
     </script>
 </body>
 </html>
