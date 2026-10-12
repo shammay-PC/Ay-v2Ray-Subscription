@@ -1,256 +1,229 @@
 #!/bin/bash
+# Ay-v2Ray-Subscription v4.0.0 Installer
+set -e
 
-# Color Definitions
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# Colors
+GREEN='\033[0;32m'; RED='\033[0;31m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
 
-# Project Variables
 PROJECT_DIR="/root/ay-custom-sub"
-PANEL_INFO_FILE="$PROJECT_DIR/.panel_info"
-SERVICE1="ay-custom-sub.service"
-SERVICE2="ay-custom-web.service"
-RESTARTER_SERVICE="Ay-Custom-Sub-Restarter.service"
-RESTARTER_TIMER="Ay-Custom-Sub-Restarter.timer"
+SERVICE_SUB="ay-custom-sub.service"
+SERVICE_WEB="ay-custom-web.service"
+SERVICE_SYNC="ay-sync-clients.service"
+TIMER_SYNC="ay-sync-clients.timer"
 
-# --- Helper Functions ---
-print_success() {
-  echo -e "${GREEN}$1${NC}"
+info()  { echo -e "${CYAN}$1${NC}"; }
+ok()    { echo -e "${GREEN}$1${NC}"; }
+warn()  { echo -e "${YELLOW}$1${NC}"; }
+err()   { echo -e "${RED}$1${NC}"; }
+
+# --- Prompts ---
+prompt_config() {
+    echo ""
+    info "=== Ay-Custom-Sub v4.0.0 Setup ==="
+    echo ""
+
+    read -p "Domain [www.shammay.ir]: " DOMAIN
+    DOMAIN=${DOMAIN:-www.shammay.ir}
+
+    read -p "Web Panel Port [4321]: " WEB_PORT
+    WEB_PORT=${WEB_PORT:-4321}
+
+    read -p "Main X-UI Sub Port [8868]: " MAIN_PORT
+    MAIN_PORT=${MAIN_PORT:-8868}
+
+    read -p "Admin Username [AyAdmin]: " ADMIN_USER
+    ADMIN_USER=${ADMIN_USER:-AyAdmin}
+
+    read -p "Admin Password [AyPass]: " ADMIN_PASS
+    ADMIN_PASS=${ADMIN_PASS:-AyPass}
+
+    read -p "Extra Sub Ports (comma-separated) [6854,8688]: " EXTRA_PORTS
+    EXTRA_PORTS=${EXTRA_PORTS:-6854,8688}
 }
 
-print_error() {
-  echo -e "${RED}$1${NC}"
-}
-
-print_info() {
-  echo -e "${CYAN}$1${NC}"
-}
-
-# --- Main Menu and Logic ---
-print_menu() {
-  clear
-
-echo -e "${NC}"
-echo -e "${CYAN}"
-echo "   db    Yb  dP  Yb   dP 88\"\"Yb 88b 88 "
-echo "  dPYb    YbdP    Yb dP  88__dP 88Yb88 "
-echo " dP__Yb    8P      YbdP  88\"\"\"  88 Y88 "
-echo "dP\"\"\"\"Yb  dP        YP   88     88  Y8 "
-echo -e "${NC}"
-  echo -e "${YELLOW}======================================${NC}"
-  echo -e "${RED}        Ay Technic Panel${NC}"
-  echo -e "${GREEN}      Developed by shammay${NC}"
-  echo -e "${GREEN} All Rights Reserved by Ay Technic${NC}"
-  echo -e "${CYAN}       https://shammay.ir${NC}"
-  echo -e "${YELLOW}======================================${NC}"
-
-  if [ -f "$PANEL_INFO_FILE" ]; then
-    print_info "Panel Information:"
-    source "$PANEL_INFO_FILE"
-    echo "URL: $PANEL_URL"
-    echo "Username: $PANEL_USER"
-    echo "Password: $PANEL_PASS"
-    echo -e "${YELLOW}--------------------------------------${NC}"
-  fi
-
-  echo "1. 📊 Install"
-  echo "2. 🔄 Update Panel"
-  echo "3. 🔁 Restart Main Services"
-  echo "4. 🛠️ Configuration"
-  echo "5. ⚙️ Manage Restarter"
-  echo "6. 🗃️ Uninstall"
-  echo "0. ❌ Exit"
-  echo -e "${YELLOW}======================================${NC}"
-}
-
+# --- Install ---
 install_project() {
-  DOMAIN=$1
+    prompt_config
 
-  if [ -z "$DOMAIN" ]; then
-    read -p "Enter your domain (e.g., example.com): " DOMAIN
-  fi
+    info "Cloning project..."
+    rm -rf "$PROJECT_DIR"
+    git clone https://github.com/shammay-PC/Ay-v2Ray-Subscription.git "$PROJECT_DIR"
 
-  print_info "Cloning project..."
-  rm -rf $PROJECT_DIR
-  git clone https://github.com/shammay-PC/Ay-v2Ray-Subscription.git $PROJECT_DIR
+    info "Installing system packages..."
+    apt update -qq && apt install -y python3 python3-pip sqlite3 >/dev/null 2>&1
 
-  print_info "Installing requirements (python3, pip, flask, requests)..."
-  apt update && apt install python3 python3-pip -y
-  pip3 install flask requests
+    info "Installing Python dependencies..."
+    pip3 install --quiet flask requests waitress
 
-  print_info "Setting up main services..."
-  cp $PROJECT_DIR/systemd/$SERVICE1 /etc/systemd/system/
-  cp $PROJECT_DIR/systemd/$SERVICE2 /etc/systemd/system/
-  
-  print_info "Setting up restarter service and timer..."
-  cp $PROJECT_DIR/systemd/$RESTARTER_SERVICE /etc/systemd/system/
-  cp $PROJECT_DIR/systemd/$RESTARTER_TIMER /etc/systemd/system/
-  
-  systemctl daemon-reload
-  systemctl enable $SERVICE1 $SERVICE2
-  systemctl start $SERVICE1 $SERVICE2
-  
-  print_info "Enabling and starting the restarter timer..."
-  systemctl enable --now $RESTARTER_TIMER
+    # Create config.json
+    cat > "$PROJECT_DIR/config.json" <<EOF
+{
+  "username": "$ADMIN_USER",
+  "password": "$ADMIN_PASS",
+  "web_port": $WEB_PORT,
+  "main_port": $MAIN_PORT,
+  "domain": "$DOMAIN",
+  "sub_path": "sub",
+  "extra_ports": [$(echo $EXTRA_PORTS | tr ',' ', ' | sed 's/,/, /g')],
+  "cert_path": "/root/cert/$DOMAIN/fullchain.pem",
+  "key_path": "/root/cert/$DOMAIN/privkey.pem",
+  "expired_message": "⛔ اشتراک شما منقضی شده، لطفا تمدید کنید ⛔",
+  "no_sub_message": "⛔ شما اشتراکی در این سرویس ندارید ⛔",
+  "dummy_config_template": "vless://00000000-0000-0000-0000-000000000000@go-to.shammay.ir:1?type=ws#{MESSAGE}"
+}
+EOF
 
-  print_info "Creating ay-sub shortcut command..."
-  ln -sf $PROJECT_DIR/setup.sh /usr/local/bin/ay-sub
-  chmod +x /usr/local/bin/ay-sub
+    # Create empty data files
+    touch "$PROJECT_DIR/Ay_Custom_Configs"
+    touch "$PROJECT_DIR/Ay_SSH_Users"
+    [ -f "$PROJECT_DIR/Side_Collections.json" ] || echo "[]" > "$PROJECT_DIR/Side_Collections.json"
 
-  # Save panel info for menu display
-  echo "PANEL_URL=https://$DOMAIN:4321" > $PANEL_INFO_FILE
-  echo "PANEL_USER=AyAdmin" >> $PANEL_INFO_FILE
-  echo "PANEL_PASS=AyPass" >> $PANEL_INFO_FILE
+    # Check for X-UI
+    if [ ! -f /etc/x-ui/x-ui.db ]; then
+        warn "X-UI database not found at /etc/x-ui/x-ui.db"
+        read -p "Continue anyway? (y/n): " cont
+        [ "$cont" != "y" ] && exit 1
+    fi
 
-  print_success "Installation complete!"
-  echo -e "${YELLOW}--------------------------------------${NC}"
-  print_info "Web Panel: https://$DOMAIN:4321"
-  print_info "Username: AyAdmin"
-  print_info "Password: AyPass"
-  echo -e "${YELLOW}--------------------------------------${NC}"
-  print_info "To run menu anytime, just type: ay-sub"
+    info "Installing systemd units..."
+    cp "$PROJECT_DIR/systemd/$SERVICE_SUB" /etc/systemd/system/
+    cp "$PROJECT_DIR/systemd/$SERVICE_WEB" /etc/systemd/system/
+    cp "$PROJECT_DIR/systemd/$SERVICE_SYNC" /etc/systemd/system/
+    cp "$PROJECT_DIR/systemd/$TIMER_SYNC" /etc/systemd/system/
+
+    systemctl daemon-reload
+    systemctl enable --now $SERVICE_SUB $SERVICE_WEB
+    systemctl enable --now $TIMER_SYNC
+
+    # Create shortcut
+    ln -sf "$PROJECT_DIR/setup.sh" /usr/local/bin/aysub
+    chmod +x /usr/local/bin/aysub
+
+    # Save panel info
+    cat > "$PROJECT_DIR/.panel_info" <<EOF
+PANEL_URL=https://$DOMAIN:$WEB_PORT
+PANEL_USER=$ADMIN_USER
+PANEL_PASS=$ADMIN_PASS
+EOF
+
+    ok "Installation complete!"
+    echo ""
+    info "Web Panel: https://$DOMAIN:$WEB_PORT"
+    info "Username:  $ADMIN_USER"
+    info "Password:  $ADMIN_PASS"
+    info "Command:   aysub"
+    echo ""
 }
 
-update_panel() {
-  print_info "Updating panel from GitHub..."
-  cd $PROJECT_DIR && git pull
-  systemctl restart $SERVICE1 $SERVICE2
-  print_success "Panel updated successfully."
-}
-
-restart_main_services() {
-  systemctl restart $SERVICE1 $SERVICE2
-  print_success "Main services restarted successfully."
-}
-
-configuration() {
-  nano $PROJECT_DIR/config.json
-}
-
-manage_restarter_menu() {
-  while true; do
+# --- Menu ---
+print_menu() {
     clear
-    echo -e "${YELLOW}--- Restarter Service Management ---${NC}"
-    # Display current status
-    systemctl status $RESTARTER_TIMER --no-pager | grep -E "Loaded|Active|Trigger"
-    echo -e "${YELLOW}------------------------------------${NC}"
-    echo "1. Start Timer"
-    echo "2. Stop Timer"
-    echo "3. Restart Timer"
-    echo "4. View Status & Logs"
-    echo "5. Edit Timer Schedule (in minutes)"
-    echo "0. Return to Main Menu"
-    echo -e "${YELLOW}------------------------------------${NC}"
-    read -p "Select an option: " restarter_choice
-    case $restarter_choice in
-      1)
-        systemctl start $RESTARTER_TIMER
-        print_success "Timer started."
-        ;;
-      2)
-        systemctl stop $RESTARTER_TIMER
-        print_success "Timer stopped."
-        ;;
-      3)
-        systemctl restart $RESTARTER_TIMER
-        print_success "Timer restarted."
-        ;;
-      4)
+    echo -e "${CYAN}"
+    echo "  █████╗ ██╗   ██╗"
+    echo " ██╔══██╗╚██╗ ██╔╝"
+    echo " ███████║ ╚████╔╝ "
+    echo " ██╔══██║  ╚██╔╝  "
+    echo " ██║  ██║   ██║   "
+    echo " ╚═╝  ╚═╝   ╚═╝   "
+    echo -e "${NC}"
+    echo -e "${YELLOW}=== Ay Technic Panel v4.0.0 ===${NC}"
+    echo ""
+
+    if [ -f "$PROJECT_DIR/.panel_info" ]; then
+        source "$PROJECT_DIR/.panel_info"
+        echo "URL:  $PANEL_URL"
+        echo "User: $PANEL_USER"
+        echo "Pass: $PANEL_PASS"
+        echo -e "${YELLOW}------------------------------${NC}"
+    fi
+
+    echo "1. 📊 Install"
+    echo "2. 🔄 Update Panel"
+    echo "3. 🔁 Restart Services"
+    echo "4. 🛠️ Edit Configuration"
+    echo "5. ⏱️ Manage Client Sync Timer"
+    echo "6. 📋 View Live Logs"
+    echo "7. 🗃️ Uninstall"
+    echo "0. ❌ Exit"
+    echo -e "${YELLOW}==============================${NC}"
+}
+
+manage_sync_timer() {
+    while true; do
         clear
-        print_info "--- Timer Status ---"
-        systemctl status $RESTARTER_TIMER
-        print_info "\n--- Last 20 Service Logs ---"
-        journalctl -u $RESTARTER_SERVICE -n 20 --no-pager
-        ;;
-      5)
-        local timer_file="/etc/systemd/system/$RESTARTER_TIMER"
-        local current_val_sec=$(grep -Po 'OnUnitActiveSec=\K[0-9]+' $timer_file)
-        local current_val_min=$((current_val_sec / 60))
-        
-        print_info "Current schedule: Every $current_val_min minutes."
-        read -p "Enter new schedule in minutes (e.g., 15): " new_minutes
-        
-        if [[ "$new_minutes" =~ ^[0-9]+$ ]] && [ "$new_minutes" -gt 0 ]; then
-          sed -i "s/^OnUnitActiveSec=.*/OnUnitActiveSec=${new_minutes}min/" $timer_file
-          systemctl daemon-reload
-          systemctl restart $RESTARTER_TIMER
-          print_success "Timer schedule updated to every $new_minutes minutes."
-        else
-          print_error "Invalid input. Please enter a positive number."
-        fi
-        ;;
-      0)
-        return
-        ;;
-      *)
-        print_error "Invalid option"
-        ;;
+        echo -e "${YELLOW}--- Client Sync Timer ---${NC}"
+        systemctl status $TIMER_SYNC --no-pager | head -5
+        echo ""
+        echo "1. Start"
+        echo "2. Stop"
+        echo "3. Restart"
+        echo "4. Edit Duration"
+        echo "5. View Logs"
+        echo "0. Back"
+        read -p "Choice: " c
+        case $c in
+            1) systemctl start $TIMER_SYNC && ok "Started" ;;
+            2) systemctl stop $TIMER_SYNC && ok "Stopped" ;;
+            3) systemctl restart $TIMER_SYNC && ok "Restarted" ;;
+            4)
+                read -p "Minutes [5]: " mins
+                mins=${mins:-5}
+                sed -i "s/^OnUnitActiveSec=.*/OnUnitActiveSec=${mins}min/" /etc/systemd/system/$TIMER_SYNC
+                systemctl daemon-reload
+                systemctl restart $TIMER_SYNC
+                ok "Set to $mins minutes"
+                ;;
+            5) journalctl -u $SERVICE_SYNC -n 50 --no-pager ;;
+            0) return ;;
+        esac
+        read -p "Enter to continue..."
+    done
+}
+
+view_live_logs() {
+    echo "1. ay-custom-sub"
+    echo "2. ay-custom-web"
+    echo "3. x-ui"
+    read -p "Choice: " c
+    case $c in
+        1) journalctl -u ay-custom-sub -f ;;
+        2) journalctl -u ay-custom-web -f ;;
+        3) journalctl -u x-ui -f ;;
     esac
-    read -p "Press Enter to continue..."
-  done
 }
 
 uninstall_project() {
-    read -p "Are you sure you want to uninstall? This is irreversible. (y/n): " confirm
-    if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
-        print_info "Uninstalling..."
-        systemctl stop $SERVICE1 $SERVICE2 $RESTARTER_TIMER
-        systemctl disable $SERVICE1 $SERVICE2 $RESTARTER_TIMER
-        rm -f /etc/systemd/system/$SERVICE1
-        rm -f /etc/systemd/system/$SERVICE2
-        rm -f /etc/systemd/system/$RESTARTER_SERVICE
-        rm -f /etc/systemd/system/$RESTARTER_TIMER
-        systemctl daemon-reload
-        rm -rf $PROJECT_DIR
-        rm -f /usr/local/bin/ay-sub
-        print_success "Uninstalled successfully."
-    else
-        print_info "Uninstallation cancelled."
-    fi
+    read -p "Are you sure? (y/n): " c
+    [ "$c" != "y" ] && return
+    for svc in $SERVICE_SUB $SERVICE_WEB $TIMER_SYNC $SERVICE_SYNC; do
+        systemctl stop $svc 2>/dev/null || true
+        systemctl disable $svc 2>/dev/null || true
+        rm -f /etc/systemd/system/$svc
+    done
+    systemctl daemon-reload
+    rm -rf "$PROJECT_DIR"
+    rm -f /usr/local/bin/aysub
+    ok "Uninstalled."
 }
 
-# اگر با پارامتر install اجرا شد، مستقیم نصب کن
+# --- Main ---
 if [[ "$1" == "install" ]]; then
-  install_project "$2"
-  exit 0
+    install_project
+    exit 0
 fi
 
-# در غیر این صورت منوی تعاملی اجرا میشه
 while true; do
-  print_menu
-  read -p "Select an option: " choice
-  case $choice in
-    1)
-      install_project
-      read -p "Press Enter to return to menu..."
-      ;;
-    2)
-      update_panel
-      read -p "Press Enter to return to menu..."
-      ;;
-    3)
-      restart_main_services
-      read -p "Press Enter to return to menu..."
-      ;;
-    4)
-      configuration
-      # No pause needed, nano handles it
-      ;;
-    5)
-      manage_restarter_menu
-      ;;
-    6)
-      uninstall_project
-      read -p "Press Enter to return to menu..."
-      ;;
-    0)
-      exit 0
-      ;;
-    *)
-      print_error "Invalid option"
-      sleep 1
-      ;;
-  esac
+    print_menu
+    read -p "Choice: " c
+    case $c in
+        1) install_project; read -p "Enter..." ;;
+        2) cd "$PROJECT_DIR" && git pull && systemctl restart $SERVICE_SUB $SERVICE_WEB && ok "Updated"; read -p "Enter..." ;;
+        3) systemctl restart $SERVICE_SUB $SERVICE_WEB && ok "Restarted"; read -p "Enter..." ;;
+        4) nano "$PROJECT_DIR/config.json" ;;
+        5) manage_sync_timer ;;
+        6) view_live_logs ;;
+        7) uninstall_project; read -p "Enter..." ;;
+        0) exit 0 ;;
+        *) err "Invalid"; sleep 1 ;;
+    esac
 done

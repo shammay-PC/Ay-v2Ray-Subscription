@@ -1,59 +1,20 @@
-<div align="center">
-  <h1>✨ Ay v2Ray Subscription 🌙</h1>
-  <p>A complete and customizable v2Ray subscription panel with beautiful web interface</p>
-  
-  ![GitHub](https://img.shields.io/github/license/shammay-PC/Ay-v2Ray-Subscription?color=blue)
-  ![GitHub stars](https://img.shields.io/github/stars/shammay-PC/Ay-v2Ray-Subscription?style=social)
-</div>
+# Ay v2Ray Subscription v4.0.0
 
----
+[完整 README 内容见项目根目录]
 
-## 🚀 Features
+## 新特性
+- 移除 Restarter timer，用 Waitress + 健康检查替代
+- 转发 X-UI Subscription-Userinfo 等响应头
+- `/Ay_Custom_Configs` 公开端点
+- Client Sync 标签页（systemd timer）
+- Live Logs 标签页
+- Side Collections 独立 JSON + 缓存 + Rename/Visibility
+- 持久化 SSH 密码（`username:password` 格式）
+- 单页登录 + Dashboard
+- Tailwind CSS + 3X-UI 风格
 
-| Feature | Description |
-|---------|-------------|
-| 🔄 **Config Merging** | Combine X-UI subscription with manual configs |
-| 🖥 **Web Panel** | Custom dashboard with login system |
-| ⚙ **Systemd Integration** | Persistent background services |
-| 📱 **Easy Menu** | Simple installation and management |
-
----
-
-## 🛠 Installation
-```bash
-bash <(curl -sSL https://raw.githubusercontent.com/shammay-PC/Ay-v2Ray-Subscription/main/setup.sh) install
-```
-
-## 📋 Menu
-```bash
-bash <(curl -sSL https://raw.githubusercontent.com/shammay-PC/Ay-v2Ray-Subscription/main/setup.sh)
-```
-<div align="left">
-
-| Option | Command |
-|--------|---------|
-| **1** |📊 Install |
-| **2** |🔄 Update Panel |
-| **3** |🔁 Restart Service | 
-| **4** |🛠 Configuration |
-| **5** |🗃 Uninstall |
-| **0** |❌ Exit | 
-
-</div>
-
-## 📱 Menu Shortcode
-
-```yaml
-aysub
-```
----
-
-## 🔐 Default Access Credentials
-
-```yaml
-Web Panel:     https://yourdomain.com:4321
-Username :     AyAdmin
-Password :     AyPass
-```
----
-<div align="center"> <h3>📜 License</h3> <p>All rights reserved by <strong>Ay Technic</strong></p> <a href="https://shammay.ir">🌐 Official Website</a> | <a href="https://github.com/shammay-PC/Ay-v2Ray-Subscription">📦 GitHub Repository</a> </div> 
+## 迁移 v3 → v4
+1. 备份 `/root/ay-custom-sub/`
+2. 运行 `aysub` → Update Panel
+3. 自动迁移 `side_collection_urls` → `Side_Collections.json`
+4. 自动迁移 `Ay_SSH_Users` 格式

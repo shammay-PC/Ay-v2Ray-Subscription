@@ -1,11 +1,13 @@
 [Unit]
-Description=Ay-Custom-Sub Service
+Description=Ay-Custom-Sub Subscription Server
 After=network.target
 
 [Service]
 Type=simple
 ExecStart=/usr/bin/python3 /root/ay-custom-sub/ay_custom_sub.py
 Restart=always
+RestartSec=3
+StartLimitIntervalSec=0
 User=root
 WorkingDirectory=/root/ay-custom-sub
 StandardOutput=append:/var/log/ay-custom-sub.log
