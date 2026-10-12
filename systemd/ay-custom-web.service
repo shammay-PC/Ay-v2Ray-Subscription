@@ -10,8 +10,6 @@ RestartSec=3
 StartLimitIntervalSec=0
 User=root
 WorkingDirectory=/root/ay-custom-sub
-StandardOutput=append:/var/log/ay-custom-web.log
-StandardError=append:/var/log/ay-custom-web-error.log
 
 [Install]
 WantedBy=multi-user.target

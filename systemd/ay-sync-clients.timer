@@ -1,9 +1,9 @@
 [Unit]
-Description=Runs Ay-Sync-Clients every N minutes
+Description=Run Ay-Sync-Clients every 6 hours
 
 [Timer]
-OnBootSec=2min
-OnUnitActiveSec=5min
+OnBootSec=5min
+OnUnitActiveSec=6h
 Unit=ay-sync-clients.service
 
 [Install]

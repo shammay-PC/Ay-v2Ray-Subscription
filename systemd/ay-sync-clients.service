@@ -1,11 +1,6 @@
 [Unit]
-Description=Sync X-UI Clients (temporary)
+Description=Ay Client Sync Service (one-shot)
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c '\
-  sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value=1 WHERE key=\x27syncClients\x27;" && \
-  sleep 300 && \
-  sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value=\x27false\x27 WHERE key=\x27syncClients\x27;" && \
-  systemctl restart x-ui \
-'
+ExecStart=/bin/bash -c 'sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value=\'true\' WHERE key=\'syncClients\';" && sleep 300 && sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value=\'false\' WHERE key=\'syncClients\';" && x-ui restart'

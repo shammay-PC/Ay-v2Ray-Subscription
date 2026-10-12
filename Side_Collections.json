@@ -1,0 +1,17 @@
+[
+  {
+    "url": "https://example.com/subscription/abc",
+    "global_rename": "[Ay] {index} - {original}",
+    "configs": [],
+    "is_encoded": false
+  },
+  {
+    "url": "https://provider.com/base64-sub",
+    "global_rename": "",
+    "configs": [
+      {"config": "", "rename": "MyServer-1", "visible": true},
+      {"config": "", "rename": "", "visible": false}
+    ],
+    "is_encoded": true
+  }
+]

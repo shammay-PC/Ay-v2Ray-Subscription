@@ -1,629 +1,240 @@
-<!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ay-Custom-Sub v4.0.0</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#2196f3',
-                        darkbg: '#1e1e2d',
-                        lightbg: '#f5f5f5',
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Vazirmatn -->
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        body { font-family: Vazirmatn, sans-serif; }
-        [data-theme="dark"] { background: #1e1e2d; color: #f8fafc; }
-        [data-theme="light"] { background: #f5f5f5; color: #1e293b; }
-        .tab-active { border-bottom: 3px solid #2196f3; color: #2196f3; }
-        .glass { backdrop-filter: blur(12px); background: rgba(255,255,255,0.8); }
-        [data-theme="dark"] .glass { background: rgba(30,30,45,0.8); }
-    </style>
-</head>
-<body>
-    <!-- Header -->
-    <header class="glass border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <h1 class="text-xl font-bold flex items-center gap-2">
-                <i class="fas fa-rocket text-primary"></i> Ay Custom Sub
-            </h1>
-            <div class="flex items-center gap-3">
-                <button onclick="toggleTheme()" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <i class="fas fa-moon" id="themeIcon"></i>
-                </button>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-danger">
-                    <i class="fas fa-sign-out-alt"></i> خروج
-                </a>
-            </div>
+<!-- 在原有 settingsAccordion 之后、manual-configs 之前，新增 Tab 导航 -->
+<ul class="nav nav-tabs mb-4 glass-card" id="mainTabs" role="tablist" style="padding: 0.5rem;">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="tab-dashboard" data-bs-toggle="tab" data-bs-target="#pane-dashboard" type="button" role="tab">
+      <i class="fas fa-tachometer-alt"></i> داشبورد
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-client-sync" data-bs-toggle="tab" data-bs-target="#pane-client-sync" type="button" role="tab">
+      <i class="fas fa-sync"></i> همسان‌سازی کلاینت
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-services" data-bs-toggle="tab" data-bs-target="#pane-services" type="button" role="tab">
+      <i class="fas fa-server"></i> سرویس‌ها
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-logs" data-bs-toggle="tab" data-bs-target="#pane-logs" type="button" role="tab">
+      <i class="fas fa-terminal"></i> لاگ‌های زنده
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-expiry" data-bs-toggle="tab" data-bs-target="#pane-expiry" type="button" role="tab">
+      <i class="fas fa-calendar-check"></i> همسان‌سازی انقضا
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content" id="mainTabsContent">
+  <!-- Dashboard tab: 原有的手动配置、SSH用户、侧边集合、订阅检查 -->
+  <div class="tab-pane fade show active" id="pane-dashboard" role="tabpanel">
+    <!-- ... 原有内容保持不变 ... -->
+    <!-- 新增：在顶部添加 /Ay_Custom_Configs 链接 -->
+    <div class="alert alert-info d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <i class="fas fa-link me-2"></i>
+        <strong>لینک کانفیگ‌های دستی:</strong>
+        <code id="customConfigsUrl" style="direction: ltr; display: inline-block;">https://{{ settings.domain }}:{{ settings.extra_ports[0] }}/Ay_Custom_Configs</code>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="copyToClipboard(document.getElementById('customConfigsUrl').textContent)">
+        <i class="fas fa-copy"></i> کپی
+      </button>
+    </div>
+  </div>
+
+  <!-- Client Sync tab -->
+  <div class="tab-pane fade" id="pane-client-sync" role="tabpanel">
+    <div class="card glass-card mb-3">
+      <div class="card-body">
+        <h4 class="card-title"><i class="fas fa-sync"></i> همسان‌سازی کلاینت (syncClients)</h4>
+        <p class="text-muted">این قابلیت کلاینت‌های x-ui را برای مدت مشخصی همسان‌سازی می‌کند.</p>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">مدت زمان (دقیقه)</label>
+            <input type="number" id="syncDuration" class="form-control ltr-input" value="5" min="1">
+          </div>
+          <div class="col-md-8">
+            <button class="btn btn-success me-2" onclick="enableClientSync()"><i class="fas fa-play"></i> فعال‌سازی</button>
+            <button class="btn btn-danger" onclick="disableClientSync()"><i class="fas fa-stop"></i> غیرفعال‌سازی</button>
+          </div>
         </div>
-    </header>
+        <div id="syncStatus" class="mt-3"></div>
+      </div>
+    </div>
 
-    <!-- Tabs -->
-    <nav class="max-w-7xl mx-auto px-4 mt-4">
-        <div class="flex gap-1 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-700" id="tabNav">
-            <button class="tab-btn tab-active px-4 py-2 text-sm font-medium" data-tab="overview">
-                <i class="fas fa-chart-pie"></i> Overview
-            </button>
-            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="manual">
-                <i class="fas fa-list"></i> Manual Configs
-            </button>
-            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="ssh">
-                <i class="fas fa-users"></i> SSH Users
-            </button>
-            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="side">
-                <i class="fas fa-link"></i> Side Collections
-            </button>
-            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="sync">
-                <i class="fas fa-sync"></i> Client Sync
-            </button>
-            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="logs">
-                <i class="fas fa-file-alt"></i> Live Logs
-            </button>
-            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="expiry">
-                <i class="fas fa-calendar-check"></i> Sync Expiry
-            </button>
-            <button class="tab-btn px-4 py-2 text-sm font-medium" data-tab="settings">
-                <i class="fas fa-cog"></i> Settings
-            </button>
+    <div class="card glass-card">
+      <div class="card-body">
+        <h4 class="card-title"><i class="fas fa-clock"></i> وضعیت Timer</h4>
+        <pre id="timerStatusText" style="direction: ltr;">در حال بارگذاری...</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Services tab -->
+  <div class="tab-pane fade" id="pane-services" role="tabpanel">
+    <div class="card glass-card">
+      <div class="card-body">
+        <h4 class="card-title"><i class="fas fa-server"></i> مدیریت سرویس‌ها</h4>
+        <div id="servicesList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Logs tab -->
+  <div class="tab-pane fade" id="pane-logs" role="tabpanel">
+    <div class="card glass-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between mb-3">
+          <h4 class="card-title mb-0"><i class="fas fa-terminal"></i> لاگ‌های زنده</h4>
+          <div>
+            <select id="logServiceSelect" class="form-select d-inline-block" style="width: auto;" onchange="loadLogs()">
+              <option value="ay-custom-sub">ay-custom-sub</option>
+              <option value="ay-custom-web">ay-custom-web</option>
+              <option value="x-ui">x-ui</option>
+              <option value="ay-sync-clients.timer">ay-sync-clients</option>
+            </select>
+            <button class="btn btn-sm btn-outline-info" onclick="downloadLog()"><i class="fas fa-download"></i></button>
+          </div>
         </div>
-    </nav>
+        <pre id="logContent" style="max-height: 500px; overflow-y: auto; direction: ltr; text-align: left; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; font-size: 0.85rem;">در حال بارگذاری...</pre>
+      </div>
+    </div>
+  </div>
 
-    <!-- Tab Contents -->
-    <main class="max-w-7xl mx-auto px-4 py-6">
-        <!-- Overview Tab -->
-        <div id="tab-overview" class="tab-content">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="glass rounded-xl p-6 shadow-lg">
-                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-link text-primary"></i> Ay_Custom_Configs</h3>
-                    <div class="flex gap-2">
-                        <input type="text" value="{{ custom_configs_url }}" readonly
-                               class="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" dir="ltr">
-                        <button onclick="copyText('{{ custom_configs_url }}')" class="btn btn-primary">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="glass rounded-xl p-6 shadow-lg">
-                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-info-circle text-primary"></i> Quick Stats</h3>
-                    <div class="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                            <div class="text-2xl font-bold text-primary">{{ custom_configs|length }}</div>
-                            <div class="text-sm text-gray-500">Manual Configs</div>
-                        </div>
-                        <div>
-                            <div class="text-2xl font-bold text-primary">{{ ssh_users|length }}</div>
-                            <div class="text-sm text-gray-500">SSH Users</div>
-                        </div>
-                        <div>
-                            <div class="text-2xl font-bold text-primary">{{ side_collections|length }}</div>
-                            <div class="text-sm text-gray-500">Collections</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <!-- Sync Expiry tab -->
+  <div class="tab-pane fade" id="pane-expiry" role="tabpanel">
+    <div class="card glass-card">
+      <div class="card-body">
+        <h4 class="card-title"><i class="fas fa-calendar-check"></i> همسان‌سازی تاریخ انقضا</h4>
+        <p>تاریخ انقضای کلاینت‌های زیرمجموعه را با کلاینت اصلی همسان می‌کند.</p>
+        <button class="btn btn-primary" onclick="syncExpiryDates()">
+          <i class="fas fa-play"></i> اجرای همسان‌سازی
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 新增 JavaScript -->
+<script>
+// --- Client Sync ---
+async function loadClientSyncStatus() {
+  const res = await fetch('/api/client-sync/status');
+  const data = await res.json();
+  const el = document.getElementById('syncStatus');
+  if (data.status === 'success') {
+    el.innerHTML = data.enabled
+      ? '<span class="badge bg-success">فعال</span>'
+      : '<span class="badge bg-secondary">غیرفعال</span>';
+  }
+}
+
+async function enableClientSync() {
+  const dur = document.getElementById('syncDuration').value;
+  const res = await fetch('/api/client-sync/enable', {
+    method: 'POST',
+    body: new URLSearchParams({ duration_minutes: dur })
+  });
+  const data = await res.json();
+  Swal.fire(data.status === 'success' ? 'موفق' : 'خطا', data.message, data.status);
+  loadClientSyncStatus();
+}
+
+async function disableClientSync() {
+  const res = await fetch('/api/client-sync/disable', { method: 'POST' });
+  const data = await res.json();
+  Swal.fire(data.status === 'success' ? 'موفق' : 'خطا', data.message, data.status);
+  loadClientSyncStatus();
+}
+
+// --- Services ---
+const MANAGED_SERVICES = ['ay-custom-sub', 'ay-custom-web', 'x-ui', 'ay-sync-clients.timer'];
+
+async function loadServices() {
+  const res = await fetch('/api/services/status');
+  const data = await res.json();
+  if (data.status !== 'success') return;
+  const el = document.getElementById('servicesList');
+  el.innerHTML = '';
+  for (const [svc, info] of Object.entries(data.services)) {
+    const active = info.active === 'active';
+    el.innerHTML += `
+      <div class="config-box mb-2 d-flex align-items-center">
+        <span style="flex:1;"><strong>${svc}</strong>
+          <span class="badge ${active ? 'bg-success' : 'bg-secondary'} ms-2">${info.active}</span>
+          <span class="badge ${info.enabled === 'enabled' ? 'bg-info' : 'bg-secondary'} ms-1">${info.enabled}</span>
+        </span>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-outline-success" onclick="svcAction('start','${svc}')"><i class="fas fa-play"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="svcAction('stop','${svc}')"><i class="fas fa-stop"></i></button>
+          <button class="btn btn-sm btn-outline-warning" onclick="svcAction('restart','${svc}')"><i class="fas fa-redo"></i></button>
         </div>
+      </div>`;
+  }
+}
 
-        <!-- Manual Configs Tab -->
-        <div id="tab-manual" class="tab-content hidden">
-            <div class="glass rounded-xl p-6 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-lg"><i class="fas fa-list text-primary"></i> کانفیگ‌های دستی</h3>
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm">نمایش</label>
-                        <select id="manualViewMode" class="px-2 py-1 rounded border text-sm">
-                            <option value="name">نام</option>
-                            <option value="config">کانفیگ</option>
-                        </select>
-                    </div>
-                </div>
-                <textarea id="newManualConfigs" rows="3"
-                          class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 mb-3"
-                          placeholder="هر کانفیگ در یک خط..."></textarea>
-                <div class="flex gap-2 mb-4">
-                    <button onclick="addManualConfigs()" class="btn btn-success flex-1">
-                        <i class="fas fa-plus"></i> افزودن
-                    </button>
-                    <button onclick="deleteAllManualConfigs()" class="btn btn-danger flex-1">
-                        <i class="fas fa-trash-alt"></i> حذف همه
-                    </button>
-                </div>
-                <div id="manualList" class="space-y-2">
-                    {% for cfg in custom_configs %}
-                    <div class="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800" data-index="{{ loop.index0 }}">
-                        <span class="flex-1 text-sm font-mono truncate" dir="ltr">{{ cfg }}</span>
-                        <button onclick="copyText('{{ cfg|e }}')" class="btn btn-sm btn-outline-success">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <button onclick="deleteManualConfig({{ loop.index0 }})" class="btn btn-sm btn-outline-danger">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
+async function svcAction(action, svc) {
+  const res = await fetch(`/api/services/${action}/${svc}`, { method: 'POST' });
+  const data = await res.json();
+  Swal.fire(data.status === 'success' ? 'موفق' : 'خطا', data.message, data.status);
+  setTimeout(loadServices, 1000);
+}
 
-        <!-- SSH Users Tab -->
-        <div id="tab-ssh" class="tab-content hidden">
-            <div class="glass rounded-xl p-6 shadow-lg">
-                <h3 class="font-bold text-lg mb-4"><i class="fas fa-users text-primary"></i> کاربران SSH</h3>
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="newSshUsername" placeholder="نام کاربری جدید"
-                           class="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800" dir="ltr">
-                    <button onclick="addSshUser()" class="btn btn-success">
-                        <i class="fas fa-user-plus"></i> افزودن
-                    </button>
-                </div>
-                <div id="sshList" class="space-y-2">
-                    {% for user in ssh_users %}
-                    <div class="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                        <i class="fas fa-user text-primary"></i>
-                        <span class="flex-1 font-medium">{{ user }}</span>
-                        <button onclick="showSshPassword('{{ user }}')" class="btn btn-sm btn-outline-info">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button onclick="changeSshPassword('{{ user }}')" class="btn btn-sm btn-outline-warning">
-                            <i class="fas fa-key"></i>
-                        </button>
-                        <button onclick="deleteSshUser('{{ user }}')" class="btn btn-sm btn-outline-danger">
-                            <i class="fas fa-user-times"></i>
-                        </button>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
+// --- Live Logs ---
+let logInterval = null;
 
-        <!-- Side Collections Tab -->
-        <div id="tab-side" class="tab-content hidden">
-            <div class="glass rounded-xl p-6 shadow-lg">
-                <h3 class="font-bold text-lg mb-4"><i class="fas fa-link text-primary"></i> مجموعه‌های جانبی</h3>
-                <div id="sideCollectionsList" class="space-y-4">
-                    {% for coll in side_collections %}
-                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4" data-index="{{ loop.index0 }}">
-                        <div class="flex gap-2 mb-2">
-                            <input type="text" value="{{ coll.url }}" placeholder="URL" dir="ltr"
-                                   class="flex-1 px-3 py-1 rounded border text-sm side-url">
-                            <button onclick="removeSideCollection({{ loop.index0 }})" class="btn btn-sm btn-outline-danger">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                        </div>
-                        <div class="flex gap-2">
-                            <input type="text" value="{{ coll.global_rename }}" placeholder="Global Rename (e.g. [Ay] {index})" dir="ltr"
-                                   class="flex-1 px-3 py-1 rounded border text-sm side-rename">
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                <div class="flex gap-2 mt-4">
-                    <button onclick="addSideCollection()" class="btn btn-success flex-1">
-                        <i class="fas fa-plus"></i> افزودن مجموعه
-                    </button>
-                    <button onclick="saveSideCollections()" class="btn btn-primary flex-1">
-                        <i class="fas fa-save"></i> ذخیره
-                    </button>
-                </div>
-            </div>
-        </div>
+async function loadLogs() {
+  const svc = document.getElementById('logServiceSelect').value;
+  const res = await fetch(`/api/services/logs/${svc}?lines=200`);
+  const data = await res.json();
+  if (data.status === 'success') {
+    const el = document.getElementById('logContent');
+    const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 50;
+    el.textContent = data.logs || '(خالی)';
+    if (wasAtBottom) el.scrollTop = el.scrollHeight;
+  }
+}
 
-        <!-- Client Sync Tab -->
-        <div id="tab-sync" class="tab-content hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="glass rounded-xl p-6 shadow-lg">
-                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-sync text-primary"></i> Client Synchronization</h3>
-                    <div id="syncStatus" class="mb-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                        <div class="flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-gray-400"></span>
-                            <span id="syncStatusText">بررسی وضعیت...</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 mb-4">
-                        <label class="text-sm">مدت زمان (دقیقه):</label>
-                        <input type="number" id="syncDuration" value="5" min="1"
-                               class="w-24 px-2 py-1 rounded border text-sm">
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="enableClientSync()" class="btn btn-success flex-1">
-                            <i class="fas fa-play"></i> Enable
-                        </button>
-                        <button onclick="disableClientSync()" class="btn btn-danger flex-1">
-                            <i class="fas fa-stop"></i> Disable
-                        </button>
-                    </div>
-                </div>
+function startLogPolling() {
+  if (logInterval) clearInterval(logInterval);
+  logInterval = setInterval(loadLogs, 2000);
+}
 
-                <div class="glass rounded-xl p-6 shadow-lg">
-                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-server text-primary"></i> Service Restarter</h3>
-                    <div id="servicesStatus" class="space-y-2">
-                        <!-- Filled by JS -->
-                    </div>
-                </div>
-            </div>
-        </div>
+// Tab switch handlers
+document.addEventListener('DOMContentLoaded', function() {
+  // existing init...
+  loadServices();
+  loadClientSyncStatus();
 
-        <!-- Live Logs Tab -->
-        <div id="tab-logs" class="tab-content hidden">
-            <div class="glass rounded-xl p-6 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-lg"><i class="fas fa-file-alt text-primary"></i> Live Logs</h3>
-                    <div class="flex gap-2">
-                        <select id="logService" class="px-2 py-1 rounded border text-sm" onchange="refreshLogs()">
-                            <option value="ay-custom-sub">ay-custom-sub</option>
-                            <option value="ay-custom-web">ay-custom-web</option>
-                            <option value="x-ui">x-ui</option>
-                            <option value="ay-sync-clients">ay-sync-clients</option>
-                        </select>
-                        <button onclick="downloadLog()" class="btn btn-sm btn-primary">
-                            <i class="fas fa-download"></i>
-                        </button>
-                    </div>
-                </div>
-                <pre id="logContent" class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs font-mono h-96 overflow-auto" dir="ltr">Loading...</pre>
-            </div>
-        </div>
+  document.getElementById('tab-services').addEventListener('shown.bs.tab', loadServices);
+  document.getElementById('tab-client-sync').addEventListener('shown.bs.tab', loadClientSyncStatus);
+  document.getElementById('tab-logs').addEventListener('shown.bs.tab', function() {
+    loadLogs();
+    startLogPolling();
+  });
 
-        <!-- Sync Expiry Tab -->
-        <div id="tab-expiry" class="tab-content hidden">
-            <div class="glass rounded-xl p-6 shadow-lg max-w-lg mx-auto text-center">
-                <h3 class="font-bold text-lg mb-4"><i class="fas fa-calendar-check text-primary"></i> همسان‌سازی تاریخ انقضاء</h3>
-                <p class="text-sm text-gray-500 mb-6">
-                    این عمل تاریخ انقضای کاربران زیرمجموعه را با کاربر اصلی یکسان می‌کند.
-                </p>
-                <button onclick="syncExpiryDates()" class="btn btn-primary w-full">
-                    <i class="fas fa-play"></i> اجرای همسان‌سازی
-                </button>
-            </div>
-        </div>
+  // Stop log polling when leaving logs tab
+  document.querySelectorAll('#mainTabs button').forEach(btn => {
+    btn.addEventListener('shown.bs.tab', function(e) {
+      if (e.target.id !== 'tab-logs' && logInterval) {
+        clearInterval(logInterval);
+        logInterval = null;
+      }
+    });
+  });
+});
 
-        <!-- Settings Tab -->
-        <div id="tab-settings" class="tab-content hidden">
-            <div class="glass rounded-xl p-6 shadow-lg">
-                <h3 class="font-bold text-lg mb-4"><i class="fas fa-cog text-primary"></i> تنظیمات</h3>
-                <form id="settingsForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm mb-1">نام کاربری</label>
-                        <input type="text" name="username" value="{{ settings.username }}" class="w-full px-3 py-2 rounded border" dir="ltr">
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-1">رمز عبور</label>
-                        <input type="password" name="password" value="{{ settings.password }}" class="w-full px-3 py-2 rounded border" dir="ltr">
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-1">پورت وب</label>
-                        <input type="number" name="web_port" value="{{ settings.web_port }}" class="w-full px-3 py-2 rounded border" dir="ltr">
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-1">پورت اصلی</label>
-                        <input type="number" name="main_port" value="{{ settings.main_port }}" class="w-full px-3 py-2 rounded border" dir="ltr">
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-1">پورت‌های جانبی (,)</label>
-                        <input type="text" name="extra_ports" value="{{ settings.extra_ports|join(',') }}" class="w-full px-3 py-2 rounded border" dir="ltr">
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-1">دامنه</label>
-                        <input type="text" name="domain" value="{{ settings.domain }}" class="w-full px-3 py-2 rounded border" dir="ltr">
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-1">مسیر ساب</label>
-                        <input type="text" name="sub_path" value="{{ settings.sub_path }}" class="w-full px-3 py-2 rounded border" dir="ltr">
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-1">مسیر گواهی</label>
-                        <input type="text" name="cert_path" value="{{ settings.cert_path }}" class="w-full px-3 py-2 rounded border" dir="ltr">
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-1">مسیر کلید</label>
-                        <input type="text" name="key_path" value="{{ settings.key_path }}" class="w-full px-3 py-2 rounded border" dir="ltr">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm mb-1">پیام انقضا</label>
-                        <textarea name="expired_message" rows="2" class="w-full px-3 py-2 rounded border">{{ settings.expired_message }}</textarea>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm mb-1">پیام ناموجود</label>
-                        <textarea name="no_sub_message" rows="2" class="w-full px-3 py-2 rounded border">{{ settings.no_sub_message }}</textarea>
-                    </div>
-                    <div class="md:col-span-2 flex gap-2">
-                        <button type="submit" class="btn btn-primary flex-1">
-                            <i class="fas fa-save"></i> ذخیره
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </main>
-
-    <script>
-        // --- Tab 切换 ---
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                btn.classList.add('tab-active');
-                document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
-                if (btn.dataset.tab === 'logs') refreshLogs();
-                if (btn.dataset.tab === 'sync') loadServicesStatus();
-            });
-        });
-
-        // --- 主题 ---
-        function toggleTheme() {
-            const html = document.documentElement;
-            const newTheme = html.dataset.theme === 'light' ? 'dark' : 'light';
-            html.dataset.theme = newTheme;
-            localStorage.setItem('theme', newTheme);
-            document.getElementById('themeIcon').className =
-                newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        }
-        (function() {
-            const t = localStorage.getItem('theme') || 'light';
-            document.documentElement.dataset.theme = t;
-            document.getElementById('themeIcon').className =
-                t === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        })();
-
-        // --- 工具 ---
-        function copyText(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                Swal.fire({icon:'success', title:'کپی شد', timer:1000, showConfirmButton:false});
-            });
-        }
-
-        // --- 手工配置 ---
-        function addManualConfigs() {
-            const ta = document.getElementById('newManualConfigs');
-            const lines = ta.value.trim().split('\n').filter(l => l.trim());
-            if (!lines.length) return;
-            const fd = new URLSearchParams();
-            lines.forEach(l => fd.append('config', l.trim()));
-            fetch('/api/custom-configs', {method:'POST', body: fd})
-                .then(r => r.json())
-                .then(d => { if (d.status === 'success') location.reload(); });
-        }
-
-        function deleteManualConfig(index) {
-            Swal.fire({
-                title: 'حذف کانفیگ؟', icon: 'warning',
-                showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'لغو'
-            }).then(r => {
-                if (r.isConfirmed) {
-                    fetch(`/api/custom-configs/${index}`, {method:'DELETE'})
-                        .then(() => location.reload());
-                }
-            });
-        }
-
-        function deleteAllManualConfigs() {
-            Swal.fire({
-                title: 'حذف همه؟', icon: 'error',
-                showCancelButton: true, confirmButtonText: 'بله', cancelButtonText: 'لغو'
-            }).then(r => {
-                if (r.isConfirmed) {
-                    fetch('/api/custom-configs/all', {method:'DELETE'})
-                        .then(() => location.reload());
-                }
-            });
-        }
-
-        // --- SSH 用户 ---
-        function addSshUser() {
-            const name = document.getElementById('newSshUsername').value.trim();
-            if (!name) return;
-            const fd = new URLSearchParams({username: name});
-            fetch('/api/ssh-users', {method:'POST', body: fd})
-                .then(r => r.json())
-                .then(d => {
-                    if (d.status === 'success') {
-                        Swal.fire({
-                            icon: 'success', title: 'کاربر ساخته شد',
-                            html: `نام: <b>${d.username}</b><br>رمز: <b>${d.password}</b>`,
-                        }).then(() => location.reload());
-                    } else {
-                        Swal.fire('خطا', d.message, 'error');
-                    }
-                });
-        }
-
-        function deleteSshUser(user) {
-            Swal.fire({
-                title: `حذف ${user}?`, icon: 'warning',
-                showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'لغو'
-            }).then(r => {
-                if (r.isConfirmed) {
-                    fetch(`/api/ssh-users/${user}`, {method:'DELETE'})
-                        .then(() => location.reload());
-                }
-            });
-        }
-
-        function showSshPassword(user) {
-            fetch(`/api/ssh-users/${user}/password`)
-                .then(r => r.json())
-                .then(d => {
-                    if (d.status === 'success') {
-                        Swal.fire({
-                            title: `رمز ${user}`,
-                            html: `<input class="w-full text-center px-3 py-2 border rounded" value="${d.password}" readonly onclick="this.select()">`,
-                            confirmButtonText: 'کپی و بستن'
-                        }).then(r => {
-                            if (r.isConfirmed) navigator.clipboard.writeText(d.password);
-                        });
-                    } else {
-                        Swal.fire('خطا', d.message, 'error');
-                    }
-                });
-        }
-
-        function changeSshPassword(user) {
-            Swal.fire({
-                title: `تغییر رمز ${user}`,
-                input: 'text', inputPlaceholder: 'رمز جدید (حداقل ۶ کاراکتر)',
-                showCancelButton: true, confirmButtonText: 'تغییر', cancelButtonText: 'لغو',
-                inputValidator: v => (!v || v.length < 6) ? 'حداقل ۶ کاراکتر' : null
-            }).then(r => {
-                if (r.value) {
-                    const fd = new URLSearchParams({password: r.value});
-                    fetch(`/api/ssh-users/${user}/password`, {method:'POST', body: fd})
-                        .then(res => res.json())
-                        .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
-                }
-            });
-        }
-
-        // --- 侧边集合 ---
-        function addSideCollection() {
-            const list = document.getElementById('sideCollectionsList');
-            const idx = list.children.length;
-            const div = document.createElement('div');
-            div.className = 'border border-gray-200 dark:border-gray-700 rounded-lg p-4';
-            div.dataset.index = idx;
-            div.innerHTML = `
-                <div class="flex gap-2 mb-2">
-                    <input type="text" placeholder="URL" dir="ltr" class="flex-1 px-3 py-1 rounded border text-sm side-url">
-                    <button onclick="this.closest('[data-index]').remove()" class="btn btn-sm btn-outline-danger">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                </div>
-                <div class="flex gap-2">
-                    <input type="text" placeholder="Global Rename" dir="ltr" class="flex-1 px-3 py-1 rounded border text-sm side-rename">
-                </div>`;
-            list.appendChild(div);
-        }
-
-        function removeSideCollection(idx) {
-            document.querySelector(`#sideCollectionsList [data-index="${idx}"]`)?.remove();
-        }
-
-        function saveSideCollections() {
-            const collections = [];
-            document.querySelectorAll('#sideCollectionsList > div').forEach(div => {
-                const url = div.querySelector('.side-url')?.value.trim();
-                const rename = div.querySelector('.side-rename')?.value.trim() || '';
-                if (url) collections.push({url, global_rename: rename, configs: []});
-            });
-            fetch('/api/side-collections', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(collections)
-            }).then(r => r.json()).then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message || '', d.status === 'success' ? 'success' : 'error'));
-        }
-
-        // --- Client Sync ---
-        function enableClientSync() {
-            const dur = document.getElementById('syncDuration').value;
-            const fd = new URLSearchParams({duration: dur});
-            fetch('/api/sync-clients/enable', {method:'POST', body: fd})
-                .then(r => r.json())
-                .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
-        }
-
-        function disableClientSync() {
-            fetch('/api/sync-clients/disable', {method:'POST'})
-                .then(r => r.json())
-                .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
-        }
-
-        function loadServicesStatus() {
-            fetch('/api/services').then(r => r.json()).then(d => {
-                if (d.status !== 'success') return;
-                const container = document.getElementById('servicesStatus');
-                container.innerHTML = '';
-                for (const [name, st] of Object.entries(d.services)) {
-                    const div = document.createElement('div');
-                    div.className = 'flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-800';
-                    div.innerHTML = `
-                        <span class="text-sm font-medium" dir="ltr">${name}</span>
-                        <div class="flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full ${st.active ? 'bg-green-500' : 'bg-red-500'}"></span>
-                            <span class="text-xs">${st.active ? 'Active' : 'Inactive'}</span>
-                            <button onclick="svcAction('${name}','restart')" class="btn btn-sm btn-outline-primary" title="Restart">
-                                <i class="fas fa-redo"></i>
-                            </button>
-                            <button onclick="svcAction('${name}','stop')" class="btn btn-sm btn-outline-danger" title="Stop">
-                                <i class="fas fa-stop"></i>
-                            </button>
-                        </div>`;
-                    container.appendChild(div);
-                }
-            });
-        }
-
-        function svcAction(name, action) {
-            fetch(`/api/services/${name}/${action}`, {method:'POST'})
-                .then(r => r.json())
-                .then(d => {
-                    Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error');
-                    if (d.status === 'success') loadServicesStatus();
-                });
-        }
-
-        // --- Live Logs ---
-        let logInterval = null;
-        function refreshLogs() {
-            const svc = document.getElementById('logService').value;
-            fetch(`/api/services/${svc}/logs?lines=200`)
-                .then(r => r.json())
-                .then(d => {
-                    if (d.status === 'success') {
-                        const pre = document.getElementById('logContent');
-                        pre.textContent = d.logs;
-                        pre.scrollTop = pre.scrollHeight;
-                    }
-                });
-        }
-
-        function downloadLog() {
-            const svc = document.getElementById('logService').value;
-            window.open(`/api/logs/${svc}/download`, '_blank');
-        }
-
-        // 启动日志轮询
-        setInterval(() => {
-            if (!document.getElementById('tab-logs').classList.contains('hidden')) {
-                refreshLogs();
-            }
-        }, 2000);
-
-        // --- Sync Expiry ---
-        function syncExpiryDates() {
-            Swal.fire({
-                title: 'همسان‌سازی تاریخ انقضاء', icon: 'question',
-                showCancelButton: true, confirmButtonText: 'بله', cancelButtonText: 'لغو'
-            }).then(r => {
-                if (r.isConfirmed) {
-                    fetch('/api/sync-expiry', {method:'POST'})
-                        .then(res => res.json())
-                        .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
-                }
-            });
-        }
-
-        // --- Settings ---
-        document.getElementById('settingsForm')?.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const fd = new URLSearchParams(new FormData(this));
-            fetch('/api/config', {method:'POST', body: fd})
-                .then(r => r.json())
-                .then(d => Swal.fire(d.status === 'success' ? 'موفق' : 'خطا', d.message, d.status === 'success' ? 'success' : 'error'));
-        });
-
-        // 初始加载服务状态
-        loadServicesStatus();
-    </script>
-</body>
-</html>
+function downloadLog() {
+  const svc = document.getElementById('logServiceSelect').value;
+  const content = document.getElementById('logContent').textContent;
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${svc}-log.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>

@@ -1,490 +1,490 @@
 #!/usr/bin/env python3
 """
-Ay-Custom-Sub Subscription Server v4.0.0
-
-一个基于 Waitress 的生产级订阅合并服务器。支持：
-- 从 X-UI 主服务器获取订阅并合并手工配置与侧边集合
-- 转发 X-UI 的 Subscription-Userinfo、Profile-Title 等响应头
-- 服务 /Ay_Custom_Configs 端点
-- 线程安全的配置缓存
-- 健康的 HTTP 重试机制
+Ay-Custom-Sub v4.0.0
+Subscription merger service with Waitress production server.
 """
 
 import json
+import logging
 import os
 import sys
 import threading
 import time
-from urllib.parse import quote, unquote
+from urllib.parse import unquote, quote
+from functools import wraps
 
 import requests
-from flask import Flask, Response, jsonify, request
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from flask import Flask, Response, request, jsonify
 from waitress import serve
 
-# ---------------------------------------------------------------------------
-# 常量与路径
-# ---------------------------------------------------------------------------
+# --- Logging ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("ay-sub")
 
-PROJECT_DIR = "/root/ay-custom-sub"
-CONFIG_PATH = os.path.join(PROJECT_DIR, "config.json")
-CUSTOM_CONFIG_PATH = os.path.join(PROJECT_DIR, "Ay_Custom_Configs")
-SIDE_COLLECTIONS_PATH = os.path.join(PROJECT_DIR, "Side_Collections.json")
-SIDE_COLLECTIONS_CACHE_PATH = os.path.join(PROJECT_DIR, "Side_Collections_Cache.json")
-
-# 侧边集合缓存 TTL（秒）
-SIDE_CACHE_TTL = 1800
+# --- Constants ---
+BASE_DIR = "/root/ay-custom-sub"
+CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
+CUSTOM_CONFIG_PATH = os.path.join(BASE_DIR, "Ay_Custom_Configs")
+SIDE_COLLECTIONS_PATH = os.path.join(BASE_DIR, "Side_Collections.json")
+SIDE_CACHE_PATH = os.path.join(BASE_DIR, "Side_Collections_Cache.json")
+CACHE_TTL = 1800  # 30 minutes
 
 app = Flask("Ay-Custom-Sub")
 
-# ---------------------------------------------------------------------------
-# 线程安全配置缓存
-# ---------------------------------------------------------------------------
-
-_config_lock = threading.Lock()
+# --- Thread-safe config cache ---
 _config_cache = None
-_config_cache_mtime = 0
+_config_lock = threading.Lock()
+_config_mtime = 0
 
 
-def load_config() -> dict:
-    """读取 config.json 并缓存。文件修改时间变化时自动失效。"""
-    global _config_cache, _config_cache_mtime
-
+def load_config(force_reload=False):
+    """Load config with thread-safe caching. Invalidates on file mtime change."""
+    global _config_cache, _config_mtime
     with _config_lock:
         try:
             mtime = os.path.getmtime(CONFIG_PATH)
         except OSError:
             mtime = 0
-
-        if _config_cache is not None and mtime == _config_cache_mtime:
-            return _config_cache
-
-        if not os.path.exists(CONFIG_PATH):
-            raise FileNotFoundError("config.json 未找到")
-
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            config = json.load(f)
-
-        _config_cache = config
-        _config_cache_mtime = mtime
-        return config
+        if _config_cache is None or force_reload or mtime != _config_mtime:
+            if not os.path.exists(CONFIG_PATH):
+                raise FileNotFoundError("config.json not found")
+            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+                _config_cache = json.load(f)
+            _config_mtime = mtime
+            logger.info("Config reloaded (mtime=%s)", mtime)
+        return _config_cache
 
 
-def invalidate_config_cache():
-    """强制使配置缓存失效（供外部调用或配置变更时使用）。"""
-    global _config_cache, _config_cache_mtime
-    with _config_lock:
-        _config_cache = None
-        _config_cache_mtime = 0
-
-
-# ---------------------------------------------------------------------------
-# HTTP 会话（带重试）
-# ---------------------------------------------------------------------------
-
-def _build_session() -> requests.Session:
-    """创建一个带重试策略的 requests Session。"""
+def make_http_session():
+    """Create a requests Session with retry and timeout defaults."""
     session = requests.Session()
     retry = Retry(
         total=2,
         backoff_factor=0.5,
-        status_forcelist=[500, 502, 503, 504],
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=frozenset(["GET", "HEAD"])
     )
-    adapter = HTTPAdapter(max_retries=retry)
+    adapter = HTTPAdapter(max_retries=retry, pool_maxsize=20)
     session.mount("https://", adapter)
     session.mount("http://", adapter)
     return session
 
 
-_http_session = _build_session()
-
-# ---------------------------------------------------------------------------
-# 侧边集合处理
-# ---------------------------------------------------------------------------
-
-def _migrate_side_collections_from_config():
-    """如果 config.json 中还有 side_collection_urls 且 Side_Collections.json 不存在，
-    则执行一次性迁移。"""
-    if os.path.exists(SIDE_COLLECTIONS_PATH):
-        return
-
-    config = load_config()
-    old_urls = config.get("side_collection_urls", [])
-    if not old_urls:
-        return
-
-    print(f"[Ay-Sub] Migrating {len(old_urls)} side collection URLs from config.json")
-    migrated = []
-    for url in old_urls:
-        if url.strip():
-            migrated.append({
-                "url": url.strip(),
-                "global_rename": "",
-                "configs": [],
-            })
-
-    with open(SIDE_COLLECTIONS_PATH, "w", encoding="utf-8") as f:
-        json.dump(migrated, f, ensure_ascii=False, indent=2)
-
-    # 从 config.json 中移除旧字段
-    if "side_collection_urls" in config:
-        del config["side_collection_urls"]
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
-        invalidate_config_cache()
-    print("[Ay-Sub] Migration complete.")
+# Module-level session (thread-safe for requests)
+_http = make_http_session()
 
 
-def _load_side_collections() -> list:
-    """加载 Side_Collections.json。"""
+def read_custom_configs():
+    """Read manual configs from Ay_Custom_Configs file."""
+    if not os.path.exists(CUSTOM_CONFIG_PATH):
+        return []
+    with open(CUSTOM_CONFIG_PATH, 'r', encoding='utf-8') as f:
+        return [line.strip() for line in f if line.strip()]
+
+
+# --- Side Collections logic ---
+
+_side_cache = {}
+_side_cache_lock = threading.Lock()
+
+
+def load_side_collections():
+    """Load side collections from JSON. Migrate from config.json if needed."""
+    # Migration: if Side_Collections.json missing but config has old format
     if not os.path.exists(SIDE_COLLECTIONS_PATH):
-        return []
+        try:
+            config = load_config()
+            old_urls = config.get("side_collection_urls", [])
+            if old_urls:
+                migrated = []
+                for url in old_urls:
+                    if url.strip():
+                        migrated.append({
+                            "url": url.strip(),
+                            "global_rename": "",
+                            "configs": [],
+                            "is_encoded": False
+                        })
+                save_side_collections(migrated)
+                logger.info("Migrated %d side collection URLs from config.json", len(migrated))
+            else:
+                save_side_collections([])
+        except Exception as e:
+            logger.error("Migration failed: %s", e)
+            save_side_collections([])
     try:
-        with open(SIDE_COLLECTIONS_PATH, "r", encoding="utf-8") as f:
+        with open(SIDE_COLLECTIONS_PATH, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        return data if isinstance(data, list) else []
+            if isinstance(data, list):
+                return data
     except (json.JSONDecodeError, IOError) as e:
-        print(f"[Ay-Sub] Error loading side collections: {e}")
-        return []
+        logger.error("Failed to load Side_Collections.json: %s", e)
+    return []
 
 
-def _load_side_cache() -> dict:
-    """加载侧边集合缓存。返回 {url: {"configs": [...], "ts": ...}}"""
-    if not os.path.exists(SIDE_COLLECTIONS_CACHE_PATH):
+def save_side_collections(collections):
+    """Persist side collections to JSON."""
+    with open(SIDE_COLLECTIONS_PATH, 'w', encoding='utf-8') as f:
+        json.dump(collections, f, ensure_ascii=False, indent=2)
+
+
+def load_side_cache():
+    """Load cached fetched configs."""
+    if not os.path.exists(SIDE_CACHE_PATH):
         return {}
     try:
-        with open(SIDE_COLLECTIONS_CACHE_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, dict) else {}
+        with open(SIDE_CACHE_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
     except (json.JSONDecodeError, IOError):
         return {}
 
 
-def _save_side_cache(cache: dict):
-    """保存侧边集合缓存。"""
-    try:
-        with open(SIDE_COLLECTIONS_CACHE_PATH, "w", encoding="utf-8") as f:
-            json.dump(cache, f, ensure_ascii=False)
-    except IOError as e:
-        print(f"[Ay-Sub] Error saving side cache: {e}")
+def save_side_cache(cache):
+    """Persist cache to disk."""
+    with open(SIDE_CACHE_PATH, 'w', encoding='utf-8') as f:
+        json.dump(cache, f, ensure_ascii=False)
 
 
-def _fetch_side_collection(url: str) -> list:
-    """从 URL 获取侧边集合内容，返回原始行列表。失败返回空列表。"""
-    try:
-        resp = _http_session.get(url, timeout=8)
-        if resp.status_code == 200:
-            return [line.strip() for line in resp.text.strip().splitlines() if line.strip()]
-        print(f"[Ay-Sub] Side collection {url} returned HTTP {resp.status_code}")
-    except requests.RequestException as e:
-        print(f"[Ay-Sub] Failed to fetch side collection {url}: {e}")
-    return []
+def fetch_collection_configs(collection, force=False):
+    """Fetch configs from a side collection URL. Uses TTL cache."""
+    url = collection.get("url", "").strip()
+    if not url:
+        return []
 
-
-def _get_cached_or_fetch_side(url: str) -> list:
-    """获取侧边集合内容，优先使用缓存。"""
-    cache = _load_side_cache()
+    cache = load_side_cache()
     now = time.time()
+    cached = cache.get(url)
 
-    if url in cache:
-        entry = cache[url]
-        if now - entry.get("ts", 0) < SIDE_CACHE_TTL:
-            return entry.get("configs", [])
+    if not force and cached and (now - cached.get("ts", 0)) < CACHE_TTL:
+        return cached.get("configs", [])
 
-    configs = _fetch_side_collection(url)
-    if configs:
-        cache[url] = {"configs": configs, "ts": now}
-        _save_side_cache(cache)
-        return configs
+    try:
+        resp = _http.get(url, timeout=(5, 10), verify=False)
+        if resp.status_code != 200:
+            logger.warning("Side collection %s returned %d", url, resp.status_code)
+            if cached:
+                return cached.get("configs", [])
+            return []
 
-    # 获取失败，返回旧缓存（即使已过期）
-    if url in cache:
-        print(f"[Ay-Sub] Using stale cache for {url}")
-        return cache[url].get("configs", [])
+        text = resp.text.strip()
+        # Detect and decode base64-encoded subscription
+        if collection.get("is_encoded", False):
+            import base64
+            try:
+                decoded = base64.b64decode(text).decode('utf-8', errors='ignore')
+                lines = [l.strip() for l in decoded.splitlines() if l.strip()]
+            except Exception:
+                lines = [l.strip() for l in text.splitlines() if l.strip()]
+        else:
+            lines = [l.strip() for l in text.splitlines() if l.strip()]
 
-    return []
+        cache[url] = {"ts": now, "configs": lines}
+        save_side_cache(cache)
+        logger.info("Fetched %d configs from side collection %s", len(lines), url)
+        return lines
+
+    except Exception as e:
+        logger.error("Failed to fetch side collection %s: %s", url, e)
+        if cached:
+            return cached.get("configs", [])
+        return []
 
 
-def _apply_rename(config_line: str, rename_spec: str, index: int, collection_name: str) -> str:
-    """对配置行应用重命名。只替换 # 之后的部分。"""
-    if not rename_spec:
-        return config_line
+def apply_rename(original_name, collection, index):
+    """Apply rename rules: per-config > global > original."""
+    # Per-config rename is handled at config level, this is global-level
+    global_rename = collection.get("global_rename", "")
+    if not global_rename:
+        return original_name
 
-    if "#" in config_line:
-        base, original_name = config_line.split("#", 1)
+    col_name = collection.get("url", "unknown").split("/")[-1][:20]
+    result = global_rename
+    result = result.replace("{original}", original_name)
+    result = result.replace("{index}", str(index + 1))
+    result = result.replace("{collection}", col_name)
+    return result
+
+
+def extract_name(config_str):
+    """Extract fragment (name) from a v2ray config URI."""
+    if '#' in config_str:
+        return config_str.split('#', 1)[1]
+    return ""
+
+
+def replace_name(config_str, new_name):
+    """Replace fragment in a v2ray config URI."""
+    if '#' in config_str:
+        base = config_str.split('#', 1)[0]
     else:
-        base = config_line
-        original_name = ""
-
-    new_name = (
-        rename_spec
-        .replace("{original}", original_name)
-        .replace("{index}", str(index))
-        .replace("{collection}", collection_name)
-    )
-    return f"{base}#{quote(new_name)}"
+        base = config_str
+    return f"{base}#{new_name}"
 
 
-def _process_side_collections() -> list:
-    """处理所有侧边集合，返回最终配置列表。"""
-    collections = _load_side_collections()
+def process_collection_configs(collection):
+    """Apply renames and visibility filter to collection configs."""
+    raw_configs = fetch_collection_configs(collection)
+    per_config = collection.get("configs", [])
     result = []
 
-    for coll in collections:
-        url = coll.get("url", "").strip()
-        if not url:
+    for idx, cfg in enumerate(raw_configs):
+        if not cfg.strip():
             continue
 
-        global_rename = coll.get("global_rename", "")
-        collection_name = url.split("//")[-1].split("/")[0] if "//" in url else url
+        # Find per-config override (by index)
+        override = per_config[idx] if idx < len(per_config) else {}
 
-        raw_configs = _get_cached_or_fetch_side(url)
+        # Visibility
+        if override.get("visible", True) is False:
+            continue
 
-        # 构建 per-config 映射
-        per_config_map = {}
-        for item in coll.get("configs", []):
-            cfg = item.get("config", "")
-            if cfg:
-                per_config_map[cfg] = item
+        original_name = extract_name(cfg)
+        new_name = original_name
 
-        for idx, line in enumerate(raw_configs):
-            line = line.strip()
-            if not line:
-                continue
+        # Priority: per-config rename > global_rename
+        if override.get("rename"):
+            new_name = override["rename"]
+        else:
+            global_renamed = apply_rename(original_name, collection, idx)
+            if global_renamed != original_name:
+                new_name = global_renamed
 
-            # 检查 per-config override
-            item = per_config_map.get(line, {})
-            if item.get("visible") is False:
-                continue
+        if new_name != original_name:
+            cfg = replace_name(cfg, new_name)
 
-            rename = item.get("rename", "") or global_rename
-            result.append(_apply_rename(line, rename, idx + 1, collection_name))
+        result.append(cfg)
 
     return result
 
 
-# ---------------------------------------------------------------------------
-# 辅助函数
-# ---------------------------------------------------------------------------
+# --- X-UI Header Transfer ---
 
-def _read_custom_configs() -> list:
-    """读取 Ay_Custom_Configs 文件。"""
-    if not os.path.exists(CUSTOM_CONFIG_PATH):
-        return []
-    try:
-        with open(CUSTOM_CONFIG_PATH, "r", encoding="utf-8") as f:
-            return [line.strip() for line in f if line.strip()]
-    except IOError:
-        return []
-
-
-def _make_dummy_response(config: dict, message_key: str, default_msg: str) -> Response:
-    """生成占位配置响应。"""
-    message = config.get(message_key, default_msg)
-    template = config.get(
-        "dummy_config_template",
-        "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1?type=ws#{MESSAGE}",
-    )
-    encoded = quote(message)
-    body = template.replace("{MESSAGE}", encoded)
-
-    resp = Response(body, status=200, mimetype="text/plain; charset=utf-8")
-    # 发送零值 userinfo 头，方便客户端正确显示
-    resp.headers["Subscription-Userinfo"] = "upload=0; download=0; total=0; expire=0"
-    return resp
+# Headers to forward from X-UI subscription response
+XUI_HEADER_KEYS = [
+    "subscription-userinfo",
+    "profile-title",
+    "profile-update-interval",
+    "profile-web-page-url",
+    "profile-description",
+    "support-url",
+    "announce",
+    "routing-enable",
+    "routing",
+    "sort-order",
+]
 
 
-def _copy_xui_headers(src_headers, dst_response: Response):
-    """将 X-UI 的响应头复制到目标 Response。"""
-    # 需要转发的关键头
-    forward_keys = [
-        "subscription-userinfo",
-        "profile-title",
-        "profile-update-interval",
-        "profile-web-page-url",
-        "announce",
-        "announce-url",
-        "support-url",
-        "profile-description",
-    ]
-    for key in forward_keys:
-        value = src_headers.get(key)
-        if value:
-            dst_response.headers[key] = value
+def extract_xui_headers(headers):
+    """Extract X-UI specific headers, preserving case-insensitive semantics."""
+    result = {}
+    for key in XUI_HEADER_KEYS:
+        # HTTP headers are case-insensitive; iterate and match
+        for h_key, h_val in headers.items():
+            if h_key.lower() == key:
+                result[h_key] = h_val
+                break
+    return result
 
 
-# ---------------------------------------------------------------------------
-# 路由
-# ---------------------------------------------------------------------------
+# --- Routes ---
 
-@app.route("/health")
+@app.route('/health')
 def health():
-    """健康检查端点。"""
-    return jsonify({"status": "ok", "service": "ay-custom-sub"})
+    """Health check endpoint."""
+    return jsonify({"status": "ok", "service": "ay-custom-sub", "version": "4.0.0"})
 
 
-@app.route("/Ay_Custom_Configs")
-def custom_configs_sub():
-    """公开端点：以 base64 编码形式返回手工配置。"""
-    import base64
-    configs = _read_custom_configs()
-    raw = "\n".join(configs)
-    encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
-    return Response(
-        encoded,
-        status=200,
-        mimetype="text/plain; charset=utf-8",
-    )
+@app.route('/Ay_Custom_Configs')
+def custom_configs_route():
+    """Public endpoint serving manual configs as plain text subscription."""
+    try:
+        configs = read_custom_configs()
+        content = '\n'.join(configs)
+        return Response(content, status=200, mimetype='text/plain; charset=utf-8')
+    except Exception as e:
+        logger.error("Error serving Ay_Custom_Configs: %s", e)
+        return Response('', status=200, mimetype='text/plain; charset=utf-8')
 
 
-@app.route("/<sub_path>/<username>")
-def merged_sub(sub_path: str, username: str):
-    """主订阅合并端点。"""
+@app.route('/<sub_path>/<username>')
+def merged_sub(sub_path, username):
+    """Main subscription merge endpoint."""
     try:
         config = load_config()
-    except FileNotFoundError:
-        return Response("config.json 未找到", status=500)
+        main_configs = []
+        xui_headers = {}
 
-    # ------------------------------------------------------------------
-    # 1. 从 X-UI 主服务器获取订阅
-    # ------------------------------------------------------------------
-    main_configs = []
-    xui_headers = {}
-    try:
+        # Build X-UI URL
         xui_url = (
             f"https://{config['domain']}:{config['main_port']}"
             f"/{sub_path}/{username}"
         )
-        real_resp = _http_session.get(
-            xui_url, timeout=8, verify=False
-        )
-        status_code = real_resp.status_code
 
-        if status_code == 200:
-            response_text = real_resp.text.strip()
-            is_expired = False
+        try:
+            real_resp = _http.get(xui_url, timeout=(5, 10), verify=False)
+            status_code = real_resp.status_code
 
-            if not response_text:
-                is_expired = True
-                print(f"[Ay-Sub] User '{username}' subscription expired (empty body)")
-            else:
-                first_line = response_text.splitlines()[0]
-                if "#" in first_line:
-                    try:
-                        encoded_name = first_line.split("#", 1)[1]
+            if status_code == 200:
+                response_text = real_resp.text.strip()
+                # Transfer X-UI headers regardless of content
+                xui_headers = extract_xui_headers(real_resp.headers)
+
+                is_expired = False
+                if not response_text:
+                    is_expired = True
+                else:
+                    first_line = response_text.splitlines()[0]
+                    if '#' in first_line:
+                        encoded_name = first_line.split('#', 1)[1]
                         decoded = unquote(encoded_name).strip()
-                        if decoded.startswith("⛔"):
+                        if decoded.startswith('⛔'):
                             is_expired = True
-                            print(f"[Ay-Sub] User '{username}' subscription expired (⛔ detected)")
-                    except Exception:
-                        pass
 
-            if is_expired:
-                return _make_dummy_response(
-                    config, "expired_message",
-                    "⛔ اشتراک شما منقضی شده، لطفا تمدید کنید ⛔",
-                )
+                if is_expired:
+                    return _make_expired_response(config, xui_headers)
 
-            main_configs = [l.strip() for l in response_text.splitlines() if l.strip()]
-            # 保存 X-UI 响应头
-            xui_headers = dict(real_resp.headers)
+                main_configs = response_text.splitlines()
 
-        else:
-            print(f"[Ay-Sub] User '{username}' not found on main server (HTTP {status_code})")
-            return _make_dummy_response(
-                config, "no_sub_message",
-                "⛔ شما اشتراکی در این سرویس ندارید ⛔",
+            elif status_code == 404:
+                # User not found
+                return _make_no_sub_response(config, xui_headers)
+
+            else:
+                # Other status - try to fetch, but log
+                logger.warning("X-UI returned %d for user %s", status_code, username)
+                return _make_no_sub_response(config, xui_headers)
+
+        except requests.RequestException as e:
+            logger.error("X-UI connection failed for %s: %s", username, e)
+            # Return cached or empty with correct headers
+            return Response(
+                "خطا در اتصال به سرور اصلی. کانفیگ‌های قبلی شما حفظ شده است.",
+                status=502, mimetype='text/plain; charset=utf-8'
             )
 
-    except requests.RequestException as e:
-        print(f"[Ay-Sub] Connection error for '{username}': {e}")
-        return Response(
-            "خطا در اتصال به سرور اصلی. کانفیگ‌های قبلی شما حفظ شده است.",
-            status=502,
+        # Merge with custom configs
+        extra_configs = read_custom_configs()
+
+        # Process side collections
+        side_collections = load_side_collections()
+        side_configs = []
+        for coll in side_collections:
+            try:
+                side_configs.extend(process_collection_configs(coll))
+            except Exception as e:
+                logger.error("Error processing collection %s: %s", coll.get("url"), e)
+
+        final_configs = main_configs + extra_configs + side_configs
+        cleaned = [c for c in final_configs if c.strip()]
+
+        resp = Response(
+            '\n'.join(cleaned),
+            status=200,
+            mimetype='text/plain; charset=utf-8'
         )
+        # Transfer X-UI headers
+        for key, val in xui_headers.items():
+            resp.headers[key] = val
+        return resp
 
-    # ------------------------------------------------------------------
-    # 2. 合并手工配置与侧边集合
-    # ------------------------------------------------------------------
-    extra_configs = _read_custom_configs()
-    side_configs = _process_side_collections()
+    except Exception as e:
+        logger.exception("Unhandled error in merged_sub")
+        return Response(f"Internal server error: {e}", status=500)
 
-    final_configs = main_configs + extra_configs + side_configs
-    cleaned = [l for l in final_configs if l.strip()]
 
-    # ------------------------------------------------------------------
-    # 3. 构建响应并转发 X-UI 头
-    # ------------------------------------------------------------------
-    body = "\n".join(cleaned)
-    resp = Response(body, status=200, mimetype="text/plain; charset=utf-8")
-
-    if xui_headers:
-        _copy_xui_headers(xui_headers, resp)
-
+def _make_expired_response(config, headers):
+    """Build expired-user response with dummy config."""
+    message = config.get("expired_message", "⛔ اشتراک شما منقضی شده ⛔")
+    template = config.get(
+        "dummy_config_template",
+        "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1?type=ws#{MESSAGE}"
+    )
+    encoded = quote(message)
+    dummy = template.replace("{MESSAGE}", encoded)
+    resp = Response(dummy, status=200, mimetype='text/plain; charset=utf-8')
+    # Zero usage headers
+    resp.headers["Subscription-Userinfo"] = "upload=0; download=0; total=0; expire=0"
+    for k, v in headers.items():
+        if k.lower() != "subscription-userinfo":
+            resp.headers[k] = v
     return resp
 
 
-# ---------------------------------------------------------------------------
-# 启动
-# ---------------------------------------------------------------------------
+def _make_no_sub_response(config, headers):
+    """Build no-subscription response with dummy config."""
+    message = config.get("no_sub_message", "⛔ شما اشتراکی ندارید ⛔")
+    template = config.get(
+        "dummy_config_template",
+        "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:1?type=ws#{MESSAGE}"
+    )
+    encoded = quote(message)
+    dummy = template.replace("{MESSAGE}", encoded)
+    resp = Response(dummy, status=200, mimetype='text/plain; charset=utf-8')
+    resp.headers["Subscription-Userinfo"] = "upload=0; download=0; total=0; expire=0"
+    for k, v in headers.items():
+        if k.lower() != "subscription-userinfo":
+            resp.headers[k] = v
+    return resp
 
-def _run_port(port: int, cert_path: str | None, key_path: str | None):
-    """在指定端口启动 Waitress 服务器。"""
+
+# --- Server runner ---
+
+def run_server(port, cert_path=None, key_path=None):
+    """Run Waitress on a single port."""
     ssl_context = None
     if cert_path and key_path and os.path.exists(cert_path) and os.path.exists(key_path):
         ssl_context = (cert_path, key_path)
-        print(f"[Ay-Sub] Port {port}: HTTPS enabled")
-    else:
-        print(f"[Ay-Sub] Port {port}: HTTP mode (no certs)")
 
+    logger.info("Starting Waitress on port %d (SSL=%s)", port, bool(ssl_context))
     try:
         serve(
             app,
-            host="0.0.0.0",
+            host='0.0.0.0',
             port=port,
-            url_scheme="https" if ssl_context else "http",
             threads=8,
-            clear_untrusted_proxy_headers=True,
+            url_scheme='https' if ssl_context else 'http',
+            **({} if not ssl_context else {})
         )
     except Exception as e:
-        print(f"[Ay-Sub] Port {port} failed to start: {e}")
+        logger.exception("Waitress failed on port %d: %s", port, e)
 
 
-def main():
-    """入口点。"""
+if __name__ == '__main__':
     try:
         config = load_config()
-    except Exception as e:
-        print(f"[Ay-Sub] Cannot load config: {e}")
-        sys.exit(1)
+        ports = config.get('extra_ports', [6854, 8688, 4586])
+        cert = config.get('cert_path')
+        key = config.get('key_path')
 
-    # 执行侧边集合迁移
-    _migrate_side_collections_from_config()
+        if not isinstance(ports, list) or not ports:
+            ports = [6854]
 
-    ports = config.get("extra_ports", [6854, 8688, 4586])
-    cert_path = config.get("cert_path")
-    key_path = config.get("key_path")
+        threads = []
+        for port in ports:
+            t = threading.Thread(
+                target=run_server,
+                args=(port, cert, key),
+                daemon=True,
+                name=f"waitress-{port}"
+            )
+            t.start()
+            threads.append(t)
+            logger.info("Started Waitress thread for port %d", port)
 
-    print(f"[Ay-Sub] Starting on ports: {ports}")
-    print(f"[Ay-Sub] Main domain: {config.get('domain')}")
+        logger.info("All %d Waitress instances running. PID=%d", len(threads), os.getpid())
 
-    threads = []
-    for port in ports:
-        t = threading.Thread(
-            target=_run_port, args=(port, cert_path, key_path), daemon=True
-        )
-        t.start()
-        threads.append(t)
-        print(f"[Ay-Sub] Port {port} thread started")
-
-    # 保持主线程存活
-    try:
+        # Keep main thread alive
         while True:
-            time.sleep(3600)
+            time.sleep(60)
+
     except KeyboardInterrupt:
-        print("[Ay-Sub] Shutting down...")
-
-
-if __name__ == "__main__":
-    main()
+        logger.info("Shutting down...")
+    except Exception as e:
+        logger.exception("Fatal startup error: %s", e)
+        sys.exit(1)

@@ -1,29 +1,28 @@
 # Changelog
 
-## v4.0.0 (2026-05-14)
+## [4.0.0] - 2026-05-09
 
 ### Fixed
-- **Critical**: Service crash resolved. Replaced Flask dev server with Waitress production server.
-- **Critical**: X-UI headers (Subscription-Userinfo, Profile-Title, etc.) now forwarded to clients.
-- Added `/health` endpoint for monitoring.
-- Thread-safe config cache to avoid repeated file reads.
+- **随机崩溃**：Waitress 替代 Flask dev server，消除线程安全问题
+- **X-UI 数据缺失**：完整转发 Subscription-Userinfo、Profile-Title 等头
+- **SSH 密码丢失**：改为 `username:password` 持久化存储
 
 ### Added
-- `/Ay_Custom_Configs` public subscription endpoint (base64-encoded).
-- **Client Sync** tab with systemd timer control.
-- **Live Logs** tab with 2-second polling and download button.
-- **Service Restarter** panel (manage ay-custom-sub, ay-custom-web, x-ui, timer).
-- **Side Collections** independent JSON file with per-config rename & visibility.
-- **Sync Expiry Dates** dedicated tab.
+- `/Ay_Custom_Configs` 公开订阅端点
+- `/health` 健康检查端点
+- Client Sync 管理（systemd timer）
+- Live Logs 实时日志查看
+- Side Collections 独立 JSON + Base64 解码 + rename/visibility
+- 单页 Login+Dashboard 合并
 
 ### Changed
-- SSH users: persistent `username:password` format (survives restarts).
-- Merged login into dashboard (single-page experience).
-- UI redesigned with Tailwind CSS + 3X-UI aesthetic.
-- `setup.sh` now prompts for configuration during install.
-- Removed mandatory `Ay-Custom-Sub-Restarter` timer (optional, disabled by default).
+- systemd unit 增加 `Restart=always`、`RestartSec=3`、`StartLimitIntervalSec=0`
+- SSH 用户不再强制 `ayuser`
+
+### Removed
+- `login.html` 独立页面（合并到 dashboard）
+- `Ay-Custom-Sub-Restarter` 默认禁用（面板控制）
 
 ### Migration
-- Automatic migration from `config.json#side_collection_urls`.
-- Automatic migration from old `Ay_SSH_Users` format.
-- No manual steps required.
+- `side_collection_urls` 自动迁移到 `Side_Collections.json`
+- SSH 用户文件自动转换为新格式
