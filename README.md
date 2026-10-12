@@ -1,40 +1,105 @@
-# Ay v2Ray Subscription v4.0.0
+# Ay-v2Ray-Subscription — v4.0.0
 
-## ✨ 新特性
+A production-grade v2Ray subscription merger with a beautiful RTL web panel.
 
-- **Waitress 生产服务器**：替代 Flask dev server，解决随机崩溃
-- **X-UI 头完整传递**：Subscription-Userinfo、Profile-Title 等
-- **Client Sync Timer**：通过 systemd timer 管理 syncClients
-- **Live Logs**：实时查看服务日志
-- **Side Collections 独立管理**：支持 rename、visibility、Base64 解码
-- **SSH 密码持久化**：`username:password` 格式，重启不丢失
-- **单页登录+仪表盘**：消除加载 overlay
+## Features
 
-## 🔗 新端点
+- **HTTPS-only**: refuses to start without valid certificates.
+- **Waitress + SSL**: no more `app.run()` in production.
+- **Config cache** protected by a lock (no more random crashes).
+- **Safe HTTP**: every outbound request uses timeout + exponential-backoff retry.
+- **X-UI header forwarding**: `Subscription-Userinfo`, `Profile-Title`, etc.
+- **Manual configs** with inline editor (name view / raw view).
+- **Side collections**: plain and base64, per-config rename and visibility, cached with TTL.
+- **SSH user manager**: `username:password` storage, no random password rotation.
+- **Service control**: start/stop/restart/enable/disable for `ay-custom-sub`, `ay-custom-web`, `x-ui`, `ay-sync-clients.timer`.
+- **Live logs**: poll every 2s, download button.
+- **Sync expiry dates** across sub-clients in X-UI database.
+- **Merged login**: single template for login + dashboard.
 
-| 端点 | 说明 |
-|------|------|
-| `https://<domain>:<port>/Ay_Custom_Configs` | 手动配置公开订阅 |
-| `https://<domain>:<port>/health` | 健康检查 |
+## File layout
+/root/ay-custom-sub/
+├── ay_custom_sub.py
+├── ay_custom_web.py
+├── config.json
+├── Ay_Custom_Configs
+├── Ay_SSH_Users
+├── Side_Collections.json
+├── Side_Collections_Cache.json
+├── requirements.txt
+├── setup.sh
+├── systemd/
+│ ├── ay-custom-sub.service
+│ ├── ay-custom-web.service
+│ ├── ay-sync-clients.service
+│ └── ay-sync-clients.timer
+└── templates/
+└── dashboard.html
 
-## 📦 迁移 v3 → v4
+text
 
-1. 备份 `config.json` 和 `Ay_SSH_Users`
-2. 运行 `bash setup.sh`
-3. 首次启动自动迁移：
-   - `side_collection_urls` → `Side_Collections.json`
-   - SSH 用户格式自动转换
-4. 旧 `Ay-Custom-Sub-Restarter.timer` 默认禁用
+## Installation
 
-## 🛠 菜单
+```bash
+bash <(curl -sSL https://raw.githubusercontent.com/shammay-PC/Ay-v2Ray-Subscription/main/setup.sh) install
+Menu
+bash
+ay-sub
+Migration from v3
+The installer keeps config.json, Ay_Custom_Configs, and Ay_SSH_Users.
+On first run:
 
-| 选项 | 功能 |
-|------|------|
-| 1 | 安装 |
-| 2 | 更新面板 |
-| 3 | 重启主服务 |
-| 4 | 配置 |
-| 5 | 管理 Restarter |
-| 6 | 管理 Client Sync |
-| 7 | 查看实时日志 |
-| 8 | 卸载 |
+side_collection_urls in config.json is migrated into Side_Collections.json.
+
+Ay_SSH_Users lines without : receive random passwords and are rewritten as username:password.
+
+Raw config URL
+Every extra port serves /Ay_Custom_Configs (plain text, no auth):
+
+text
+https://<domain>:<first_extra_port>/Ay_Custom_Configs
+Health check
+text
+curl -k https://127.0.0.1:<port>/health   # {"status":"ok"}
+curl    http://127.0.0.1:<port>/health   # connection refused
+Troubleshooting
+Service refuses to start.
+Check journalctl -u ay-custom-web -n 50. The most common cause is missing certificates. Verify cert_path and key_path in config.json exist and are readable by root.
+
+Client Sync doesn't work.
+Verify /etc/x-ui/x-ui.db exists and sqlite3 is installed. Enable the timer manually:
+
+bash
+systemctl enable --now ay-sync-clients.timer
+SSH user can't log in.
+Check the user exists: id <username>. If it was deleted outside the panel, simply re-add it from the SSH Users tab.
+
+License
+All rights reserved by Ay Technic.
+
+text
+
+---
+
+# ۸. `CHANGELOG.md`
+
+```markdown
+# Changelog
+
+## 4.0.0
+
+- Replaced `app.run()` with Waitress + SSL on all ports.
+- Services now refuse to start without valid certificates.
+- Added thread-safe in-memory config cache.
+- Added `safe_get()` with timeout and exponential-backoff retry for all outbound HTTP.
+- Added `/Ay_Custom_Configs` and `/health` routes on every sub port.
+- Forward X-UI headers (`Subscription-Userinfo`, `Profile-Title`, ...) to clients.
+- Merged `login.html` into `dashboard.html` (single template).
+- Added Side Collections with plain/base64 support, rename placeholders and visibility toggles.
+- Added per-config editor for manual configs (name view / raw view).
+- Switched SSH user storage to `username:password` (automatic v3 migration).
+- Removed forced `ayuser` creation and password rotation on restart.
+- Added Client Sync, Service Restarter, Live Logs and Sync Expiry tabs.
+- Replaced `Ay-Custom-Sub-Restarter` timer with `ay-sync-clients` (disabled by default).
+- Added `requirements.txt` with `flask`, `requests`, `waitress`.
+- Interactive `setup.sh` with prompts for domain, ports, credentials and cert paths.

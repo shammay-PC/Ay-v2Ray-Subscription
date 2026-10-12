@@ -1,5 +1,5 @@
 [Unit]
-Description=Ay-Custom-Sub Subscription Service
+Description=Ay-Custom-Sub Service
 After=network.target
 
 [Service]

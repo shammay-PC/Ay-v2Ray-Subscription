@@ -1,17 +1,19 @@
 [
   {
-    "url": "https://example.com/subscription/abc",
-    "global_rename": "[Ay] {index} - {original}",
+    "url": "https://example.com/free-sub",
+    "type": "plain",
+    "global_rename": "[Ay] {index}",
     "configs": [],
-    "is_encoded": false
+    "last_fetch": 0
   },
   {
-    "url": "https://provider.com/base64-sub",
-    "global_rename": "",
+    "url": "https://example.com/base64-sub",
+    "type": "base64",
+    "global_rename": null,
     "configs": [
-      {"config": "", "rename": "MyServer-1", "visible": true},
-      {"config": "", "rename": "", "visible": false}
+      {"config": "vless://...", "rename": "MyServer-1", "visible": true},
+      {"config": "vmess://...", "visible": false}
     ],
-    "is_encoded": true
+    "last_fetch": 0
   }
 ]
